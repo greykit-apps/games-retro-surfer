@@ -1,0 +1,73 @@
+# ─── greykit.com/games/retrosurfer96/ — validate + deploy ────────────────
+#
+# Single rsync job over SSH to DreamHost, mirroring the sibling games
+# (pumaclicker, hackermap). Auth comes from CI/CD variables inherited from
+# the greykit-games GitLab group:
+#
+#   DREAMHOST_SSH_KEY    File-type CI variable holding the private SSH key
+#   DREAMHOST_HOST       DreamHost SSH host
+#   DREAMHOST_USERNAME   DreamHost shell user; deploy target is
+#                        /home/$DREAMHOST_USERNAME/greykit.com/games/retrosurfer96/
+#
+# Those three are *protected* variables, so they are only exposed to pipelines
+# on protected branches. `main` is protected on this project — if you rename
+# the default branch or deploy from another one, protect it too or the deploy
+# will run with empty DREAMHOST_* vars and fail at ssh.
+#
+# Only index.html and retro-surfer.js ship. README.md, LICENSE and tools/
+# stay in the repo. The game is one self-contained script that injects its own
+# CSS, so there is no build step and nothing to bundle.
+#
+# No --delete: this preserves untracked server-side files in the directory
+# (.htaccess for cache headers, etc.) that don't live in this repo. The
+# greykitweb repo that deploys greykit.com itself runs rsync --delete with
+# --exclude='games/', so a website deploy won't wipe this subpath either.
+
+stages:
+  - validate
+  - deploy
+
+# The game is one file of hand-editable character-grid art, so the likely
+# breakage is data-shaped and silent — a short row, a colour with no palette
+# entry, a sprite no era can spawn. Catch that before it reaches the site.
+validate:
+  stage: validate
+  image: node:20-alpine
+  script:
+    - node --check retro-surfer.js
+    - node tools/check-sprites.js
+    - test -s index.html
+    - grep -q 'data-retro-surfer' index.html
+
+deploy:
+  stage: deploy
+  image: debian:bookworm-slim
+  only:
+    - main
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq openssh-client rsync > /dev/null 2>&1
+    - mkdir -p ~/.ssh
+    - cp "$DREAMHOST_SSH_KEY" ~/.ssh/id_rsa
+    - echo "" >> ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -H "$DREAMHOST_HOST" >> ~/.ssh/known_hosts
+  script:
+    # §42 — emit a version.json fingerprint of the deployed bytes.
+    - SHA=${CI_COMMIT_SHORT_SHA}
+    - BYTES=$(wc -c < retro-surfer.js | tr -d ' ')
+    - MD5=$(md5sum retro-surfer.js | awk '{print $1}')
+    - printf '{"size":%s,"md5":"%s","commit":"%s"}\n' "$BYTES" "$MD5" "$SHA" > version.json
+    # Ensure the subdirectory exists (first deploy creates the leaf), then ship
+    # the two runtime files. Apache serves index.html for the bare directory,
+    # so both /games/retrosurfer96/ and /games/retrosurfer96/index.html resolve.
+    - ssh ${DREAMHOST_USERNAME}@${DREAMHOST_HOST} "mkdir -p /home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/"
+    - rsync -avz --chmod=F644 index.html retro-surfer.js version.json ${DREAMHOST_USERNAME}@${DREAMHOST_HOST}:/home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/
+  environment:
+    name: production
+    url: https://greykit.com/games/retrosurfer96/
+  artifacts:
+    paths:
+      - index.html
+      - retro-surfer.js
+      - version.json
+    expire_in: 30 days

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Retro Surfer '96</title>
+<meta name="description" content="Ride the information superhighway. A pixel-art web-surfing game — carve past dead 90s services and outrun the CookieMonster virus.">
+<meta name="color-scheme" content="dark">
+<style>
+  body {
+    margin: 0; min-height: 100dvh; display: grid; place-items: center;
+    gap: 18px; padding: 28px 16px;
+    background: #05070f; color: #8b8fa8;
+    font: 14px/1.6 ui-monospace, Menlo, Consolas, monospace;
+  }
+  h1 { color: #54f2ff; font-size: 18px; margin: 0; letter-spacing: 2px; }
+  p { margin: 0; max-width: min(48ch, 100%); text-align: center; }
+  kbd {
+    background: #16224d; color: #e8ecff; border: 1px solid #2b3550;
+    border-radius: 3px; padding: 1px 5px; font: inherit;
+  }
+  a { color: #3ddc4a; }
+  footer { font-size: 12px; opacity: .75; text-align: center; }
+</style>
+</head>
+<body>
+  <h1>RETRO SURFER '96</h1>
+  <p>Click the screen, then <kbd>Enter</kbd> to start.
+     <kbd>←</kbd><kbd>→</kbd> lean the board (tap to nudge, hold to carve),
+     <kbd>↓</kbd> tuck for speed, <kbd>↑</kbd> brake.
+     On a phone, drag anywhere on the game.</p>
+
+  <div data-retro-surfer data-width="420"></div>
+
+  <p>Grab the green things. The big junk can't hurt you &mdash; it just wrecks
+     your speed, which is exactly when the virus catches up.</p>
+
+  <footer>
+    Konami code
+    (<kbd>↑</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd><kbd>←</kbd><kbd>→</kbd><kbd>B</kbd><kbd>A</kbd>)
+    opens it as an overlay &middot;
+    <a href="https://gitlab.com/greykit-games/retrosurfer96">source</a>
+  </footer>
+
+  <script src="retro-surfer.js"></script>
+  <script>RetroSurfer.konami({ width: 440 });</script>
+</body>
+</html>

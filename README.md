@@ -217,5 +217,31 @@ needs to know how many there are.
 ## Files
 
 - `retro-surfer.js` — the whole game (art and styles included)
-- `demo.html` — standalone demo page with both mount styles
+- `index.html` — playable page; deployed, and doubles as the local demo
 - `tools/gen-sprites.js` — sprite art generator, dev-only
+- `tools/check-sprites.js` — art integrity check, run in CI
+
+## Deploying
+
+Pushing to `main` runs `.gitlab-ci.yml`, which validates and then rsyncs
+`index.html`, `retro-surfer.js` and a `version.json` fingerprint over SSH to
+**https://greykit.com/games/retrosurfer96/**. There's no build step — the game
+is one self-contained script that injects its own CSS.
+
+Auth comes from `DREAMHOST_SSH_KEY`, `DREAMHOST_HOST` and `DREAMHOST_USERNAME`,
+inherited from the `greykit-games` group. They're *protected* variables, so
+they only reach pipelines on protected branches; `main` is protected here. If a
+deploy fails at the `ssh` step with empty variables, that's the thing to check.
+
+The validate stage runs `node --check` plus `tools/check-sprites.js`, which
+catches the failure modes this codebase actually has — a grid row that lost a
+character, a pixel referencing a colour that isn't in its palette, or a sprite
+no era can spawn. None of those throw at runtime; they just render wrong.
+
+```bash
+node tools/check-sprites.js
+```
+
+## License
+
+MIT — see `LICENSE`.
