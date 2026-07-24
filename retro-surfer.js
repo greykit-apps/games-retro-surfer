@@ -3,10 +3,9 @@
  * SkiFree/Surf-style: ride down the information superhighway, carve past
  * legacy tech, grab security powerups, outrun the CookieMonster virus.
  *
- * Controls: ArrowLeft/ArrowRight turn the board one position (hard left,
- *           left, straight, right, hard right), ArrowDown tucks for speed
- *           along whichever way you're pointing, ArrowUp brakes.
- *           Enter/Space starts.
+ * Controls: ArrowLeft/ArrowRight lean the board, ArrowDown tucks for speed
+ *           along whichever way you're pointing, ArrowUp brakes, Space
+ *           holds a jump against the charge meter. Enter starts.
  *
  * Usage:
  *   <script src="retro-surfer.js"></script>
@@ -37,7 +36,20 @@
   var MAGNET = 34;       // px within which a pickup starts reaching for you
   var SHIELD_R = 15;     // Norton bubble radius — drawn and collided alike
   var LINK_COUNT = 4;    // links opened by one hyperlink pickup
-  var LINK_GAP = 95;     // px between links along the line you are flying
+  var LINK_GAP = 95;     // px between links along the line you are riding
+
+  // Jump charge. Fills only while you're making clean progress: scaled by how
+  // fast you're actually descending, and ramped in over JUMP_RAMP seconds
+  // since the last knock, so a crash costs you the momentum of the meter as
+  // well as a life. A full bar is MAX_AIR seconds of air — spend it as one
+  // long flight or three hops big enough to clear a single obstacle.
+  var MAX_AIR = 1.8;
+  var AIR_DRAIN = 1 / MAX_AIR;
+  var MIN_JUMP = 0.15;   // charge needed to leave the ground at all
+  var MIN_AIR = MAX_AIR / 3;  // a tap buys exactly one hop: three per bar
+  var JUMP_FILL = 0.1;   // charge/sec at full ramp and reference speed
+  var JUMP_REF = 250;    // px/sec of descent that counts as reference speed
+  var JUMP_RAMP = 5;     // sec of clean riding before the meter fills at full rate
   var TURN_RATE = 168;   // deg/sec once the lean is fully committed
   var TURN_EASE = 12;    // how fast turn speed ramps up and dies away
   var POSE = ["pose0", "pose1", "pose2", "pose3", "pose4",
@@ -1906,7 +1918,11 @@
         invuln: 0,
         shield: 0,
         boost: 0,
-        jump: 0,
+        charge: 0,          // jump meter, 0..1
+        sinceHit: 0,        // sec of clean riding, ramps the fill rate
+        airborne: false,
+        airTime: 0,
+        airHeight: 0,       // eased 0..1, purely visual
         shake: 0,
         drag: 0,              // >0 while wading through sludge
         dragging: false,
@@ -1945,7 +1961,9 @@
       if (!HANDLED[k]) return;
       e.preventDefault();
       keys[k] = true;
-      if (k === "Enter" || k === " " || k === "Spacebar") {
+      // Space is the jump while you're playing, and the start key when
+      // you're not — the two can't collide.
+      if (k === "Enter" || ((k === " " || k === "Spacebar") && state.mode !== "playing")) {
         if (state.mode !== "playing") start();
       } else if (k === "ArrowDown" && !e.repeat && state.mode === "playing") {
         beep(560, 0.05, "triangle", 0.035);   // tuck, whichever way you point
@@ -1973,6 +1991,10 @@
     // same eased model the keys do), drag down to tuck, up to brake.
     var touch = null;
     var usedTouch = false;
+    // A second finger anywhere is the jump button: steer with one thumb,
+    // jump with the other, hold for a longer flight.
+    var touchJump = false;
+    var jumpPointer = null;
 
     function canvasScale() {
       var r = canvas.getBoundingClientRect();
@@ -1984,7 +2006,14 @@
       if (e.pointerType === "mouse") return;
       e.preventDefault();
       usedTouch = true;
-      if (touch) return;
+      if (touch) {
+        if (jumpPointer === null && state.mode === "playing") {
+          jumpPointer = e.pointerId;
+          touchJump = true;
+          try { wrap.setPointerCapture(e.pointerId); } catch (err) { /* fine */ }
+        }
+        return;
+      }
       touch = {
         id: e.pointerId, x0: e.clientX, y0: e.clientY,
         x: e.clientX, y: e.clientY, moved: 0, t0: Date.now()
@@ -2002,6 +2031,11 @@
     }
 
     function onPointerUp(e) {
+      if (jumpPointer !== null && e.pointerId === jumpPointer) {
+        jumpPointer = null;
+        touchJump = false;
+        return;
+      }
       if (!touch || e.pointerId !== touch.id) return;
       var tap = touch.moved < 12 && Date.now() - touch.t0 < 400;
       touch = null;
@@ -2089,7 +2123,7 @@
     }
 
     function damage(label) {
-      if (state.invuln > 0 || state.jump > 0) return;
+      if (state.invuln > 0 || state.airborne) return;
       if (state.shield > 0) {
         state.shield = 0;
         state.invuln = 1;
@@ -2100,6 +2134,7 @@
       }
       state.lives--;
       state.combo = 0;
+      state.sinceHit = 0;          // a knock costs the meters momentum too
       state.invuln = 1.4;
       state.speed *= 0.5;
       state.lean = 0;          // a crash stands you back up
@@ -2161,10 +2196,10 @@
       for (var j = state.entities.length - 1; j >= 0; j--) {
         if (state.entities[j].kind === "link") state.entities.splice(j, 1);
       }
+      // Straight along the way you're actually travelling — which on the
+      // ground is simply where the board points.
       var ang = state.lean * Math.PI / 180;
-      var vx = Math.sin(ang) * 1.6, vy = 1.35;      // airborne velocity
-      var len = Math.sqrt(vx * vx + vy * vy);
-      vx /= len; vy /= len;
+      var vx = Math.sin(ang), vy = Math.cos(ang);
       var w = spriteW("link"), h = spriteH("link");
       var laid = 0;
       for (var i = 0; i < count; i++) {
@@ -2188,31 +2223,31 @@
     }
 
     function startLinkChain() {
-      state.jump = 1.6;
       state.chain = 0;
       state.chainTotal = LINK_COUNT;
       layChain(LINK_COUNT);
       say("HYPERLINK OPEN");
       beep(600, 0.07);
       setTimeout(function () { beep(900, 0.09); }, 70);
+      if (state.chainTotal <= 0) resolveChain(false);
     }
 
     function grabLink() {
       state.chain++;
-      state.jump += 0.3;                  // each link buys a little more air
       state.distance += 18 * 9;
       pop("+18KB", "#54f2ff");
       beep(760 + state.chain * 120, 0.06, "triangle", 0.04);
       layChain(state.chainTotal - state.chain);   // re-aim from here
+      if (state.chainTotal <= state.chain) resolveChain(true);
     }
 
-    // Called once when you touch down: pay out the chain, and drop any links
-    // you didn't reach so they can't be collected from the ground.
-    function land() {
+    // A chain ends the moment a link goes by uncollected — miss one and the
+    // rest of the line goes with it.
+    function resolveChain(complete) {
       for (var i = state.entities.length - 1; i >= 0; i--) {
         if (state.entities[i].kind === "link") state.entities.splice(i, 1);
       }
-      if (state.chain >= state.chainTotal && state.chainTotal > 0) {
+      if (complete && state.chainTotal > 0) {
         // scaled by length so a deliberately short chain laid into a wall
         // isn't a cheap way to farm the completion bonus
         var bonus = 18 * state.chainTotal;
@@ -2222,6 +2257,7 @@
         setTimeout(function () { beep(1400, 0.14); }, 90);
       } else if (state.chain > 0) {
         say(state.chain + "/" + state.chainTotal + " LINKS");
+        beep(240, 0.12, "sawtooth", 0.035);
       }
       state.chain = 0;
       state.chainTotal = 0;
@@ -2286,7 +2322,7 @@
     function updateSpray(dt, descent) {
       var i, p;
       var hard = Math.abs(state.lean) > 24;
-      if ((hard || state.speed < baseSpeed() * 0.7) && state.jump <= 0 && state.speed > 70 &&
+      if ((hard || state.speed < baseSpeed() * 0.7) && !state.airborne && state.speed > 70 &&
         state.spray.length < 70) {
         var side = hard ? (state.lean > 0 ? 1 : -1) : (Math.random() < 0.5 ? 1 : -1);
         var n = hard ? 2 : 1;
@@ -2359,14 +2395,8 @@
       // the field and costs nothing downhill, which is what makes the chain
       // flyable — and what makes the jump a real escape from the virus.
       var ang = state.lean * Math.PI / 180;
-      var descent, lateral;
-      if (state.jump > 0) {
-        descent = state.speed * 1.35;
-        lateral = state.speed * Math.sin(ang) * 1.6;
-      } else {
-        descent = state.speed * Math.cos(ang);
-        lateral = state.speed * Math.sin(ang);
-      }
+      var descent = state.speed * Math.cos(ang);
+      var lateral = state.speed * Math.sin(ang);
       state.descent = descent;
       state.distance += descent * dt;
 
@@ -2384,9 +2414,36 @@
       state.invuln = Math.max(0, state.invuln - dt);
       state.shield = Math.max(0, state.shield - dt);
       state.boost = Math.max(0, state.boost - dt);
-      var wasAirborne = state.jump > 0;
-      state.jump = Math.max(0, state.jump - dt);
-      if (wasAirborne && state.jump <= 0) land();
+
+      // --- jump meter -------------------------------------------------
+      // Hold to stay up; the meter drains while you're airborne and refills
+      // only on clean ground. Nothing refills it mid-flight, so a long jump
+      // and three hops cost exactly the same bar.
+      var wantJump = !!(keys[" "] || keys.Spacebar || touchJump);
+      if (state.airborne) {
+        state.airTime += dt;
+        state.charge = Math.max(0, state.charge - AIR_DRAIN * dt);
+        if (state.charge <= 0 || (!wantJump && state.airTime >= MIN_AIR)) {
+          state.airborne = false;
+          beep(300, 0.05, "triangle", 0.03);
+        }
+      } else {
+        if (wantJump && state.charge >= MIN_JUMP) {
+          state.airborne = true;
+          state.airTime = 0;
+          beep(720, 0.06, "triangle", 0.04);
+        } else {
+          // A knock stops the meter dead and resets the ramp; wading through
+          // junk stalls it too, without costing the ramp you've built.
+          state.sinceHit += dt;
+          if (state.invuln <= 0 && state.drag <= 0) {
+            var ramp = clamp(state.sinceHit / JUMP_RAMP, 0, 1);
+            state.charge = clamp(
+              state.charge + JUMP_FILL * (state.descent / JUMP_REF) * ramp * dt, 0, 1);
+          }
+        }
+      }
+      state.airHeight += ((state.airborne ? 1 : 0) - state.airHeight) * Math.min(1, dt * 9);
       state.shake = Math.max(0, state.shake - dt * 14);
       state.drag = Math.max(0, state.drag - dt);
       if (state.drag <= 0) state.dragging = false;
@@ -2433,7 +2490,7 @@
         // Sludge is a field you wade through — it is never consumed and
         // never hurts, it just refuses to let you go fast.
         if (e.kind === "sludge") {
-          if (state.jump <= 0 && hits(e)) {
+          if (!state.airborne && hits(e)) {
             state.drag = 0.12;
             if (!state.dragging) {
               state.dragging = true;
@@ -2471,7 +2528,7 @@
           if (e.kind === "powerup") {
             state.entities.splice(i, 1);
             collect(e);
-          } else if (state.jump <= 0 && state.invuln <= 0) {
+          } else if (!state.airborne && state.invuln <= 0) {
             state.entities.splice(i, 1);
             damage(SPRITES[e.key].label);
           }
@@ -2481,7 +2538,7 @@
         // cleared it — how close was that?
         if (e.kind === "obstacle" && !e.scored && e.y + e.h < PLAYER_Y + 8) {
           e.scored = true;
-          if (state.jump <= 0 && state.invuln <= 0) {
+          if (!state.airborne && state.invuln <= 0) {
             var clear = Math.abs(state.px - (e.x + e.w / 2)) - 7 - (e.w - 8) / 2;
             if (clear >= 0 && clear < NEAR_MISS) nearMiss(clear);
           }
@@ -2543,11 +2600,36 @@
 
       if (state.toastTime > 0) {
         ctx.fillStyle = "#05070f";
-        ctx.fillRect(0, H - 22, W, 18);
+        ctx.fillRect(0, H - 30, W, 18);
         ctx.fillStyle = "#2b3550";
-        ctx.fillRect(0, H - 23, W, 1);
-        drawTextCentered(ctx, state.toast, H - 18, state.toastTime > 1.2 ? "#ffffff" : "#8b8fa8", 2);
+        ctx.fillRect(0, H - 31, W, 1);
+        drawTextCentered(ctx, state.toast, H - 26, state.toastTime > 1.2 ? "#ffffff" : "#8b8fa8", 2);
       }
+
+      // Jump meter, sitting in the bottom status bar like a browser's
+      // download progress. Frozen while you're flashing or bogged down, so
+      // a stalled bar explains itself.
+      var by = H - 8, bx0 = 26, bw = W - bx0 - 4;
+      ctx.fillStyle = "#05070f";
+      ctx.fillRect(0, H - 10, W, 10);
+      var frozen = state.invuln > 0 || state.drag > 0;
+      drawText(ctx, "JUMP", 4, by, frozen ? "#8b4a55" : "#8b8fa8", 1);
+      ctx.fillStyle = "#16224d";
+      ctx.fillRect(bx0, by - 1, bw, 7);
+      var fillW = Math.round(bw * state.charge);
+      if (fillW > 0) {
+        ctx.fillStyle = state.charge >= 1
+          ? (Math.floor(state.time * 6) % 2 ? "#ffffff" : "#54f2ff")
+          : state.charge >= MIN_JUMP ? "#54f2ff" : "#2b6ef6";
+        ctx.fillRect(bx0, by - 1, fillW, 7);
+      }
+      if (frozen) {                       // hatch the track when stalled
+        ctx.fillStyle = "rgba(255,51,85,.5)";
+        for (var hx = bx0; hx < bx0 + bw; hx += 4) ctx.fillRect(hx, by - 1, 1, 7);
+      }
+      // the notch you need to reach before you can leave the ground at all
+      ctx.fillStyle = "#0a0d18";
+      ctx.fillRect(bx0 + Math.round(bw * MIN_JUMP), by - 1, 1, 7);
     }
 
     function drawSpray() {
@@ -2566,10 +2648,11 @@
       var y = PLAYER_Y;
       var scale = 1;
 
-      if (state.jump > 0) {
-        var t = 1 - state.jump / 1.15;
-        var arc = Math.sin(Math.PI * t);
-        ctx.fillStyle = "rgba(0,0,0,.45)";
+      // Height is eased rather than an arc over a fixed duration, because a
+      // jump now lasts as long as you hold it.
+      if (state.airHeight > 0.02) {
+        var arc = state.airHeight;
+        ctx.fillStyle = "rgba(0,0,0," + (0.45 * arc).toFixed(2) + ")";
         ctx.fillRect(Math.round(x + 8), y + 28, 16, 4);
         y -= arc * 22;
         scale = 1 + arc * 0.28;      // reads as height, not just a lift
@@ -2624,8 +2707,11 @@
           ctx.fillRect(Math.round(c.x) - (8 - i), 46 + i, (8 - i) * 2 + 1, 1);
         }
       }
+      // Clear of the era label on the HUD's second row. This shares a row
+      // with the off-screen chevron above, which is safe: that shows only
+      // when the chaser is further back than this warning's range.
       if (c.gap < 140 && !c.fleeing && Math.floor(state.time * 5) % 2 === 0) {
-        drawTextCentered(ctx, "BEHIND YOU", 34, "#ff3355", 2);
+        drawTextCentered(ctx, "BEHIND YOU", 48, "#ff3355", 2);
       }
     }
 
@@ -2645,19 +2731,23 @@
       drawTextCentered(ctx, "SUPERHIGHWAY", 202, "#8b8fa8", 2);
 
       if (usedTouch) {
-        drawText(ctx, "DRAG", 46, 234, "#e8ecff", 2);
-        drawText(ctx, "SIDEWAYS TO LEAN", 110, 234, "#8b8fa8", 2);
-        drawText(ctx, "DRAG", 46, 252, "#e8ecff", 2);
-        drawText(ctx, "DOWN TO TUCK", 110, 252, "#8b8fa8", 2);
-        drawText(ctx, "DRAG", 46, 270, "#e8ecff", 2);
-        drawText(ctx, "UP TO BRAKE", 110, 270, "#8b8fa8", 2);
+        drawText(ctx, "DRAG", 40, 228, "#e8ecff", 2);
+        drawText(ctx, "SIDEWAYS TO LEAN", 104, 228, "#8b8fa8", 2);
+        drawText(ctx, "DRAG", 40, 244, "#e8ecff", 2);
+        drawText(ctx, "DOWN TO TUCK", 104, 244, "#8b8fa8", 2);
+        drawText(ctx, "DRAG", 40, 260, "#e8ecff", 2);
+        drawText(ctx, "UP TO BRAKE", 104, 260, "#8b8fa8", 2);
+        drawText(ctx, "2 FING", 40, 276, "#54f2ff", 2);
+        drawText(ctx, "HOLD TO JUMP", 104, 276, "#8b8fa8", 2);
       } else {
-        drawText(ctx, "< >", 60, 234, "#e8ecff", 2);
-        drawText(ctx, "HOLD TO CARVE", 150, 234, "#8b8fa8", 2);
-        drawText(ctx, "DOWN", 60, 252, "#e8ecff", 2);
-        drawText(ctx, "TUCK", 150, 252, "#8b8fa8", 2);
-        drawText(ctx, "UP", 60, 270, "#e8ecff", 2);
-        drawText(ctx, "BRAKE", 150, 270, "#8b8fa8", 2);
+        drawText(ctx, "< >", 56, 228, "#e8ecff", 2);
+        drawText(ctx, "HOLD TO CARVE", 138, 228, "#8b8fa8", 2);
+        drawText(ctx, "DOWN", 56, 244, "#e8ecff", 2);
+        drawText(ctx, "TUCK", 138, 244, "#8b8fa8", 2);
+        drawText(ctx, "UP", 56, 260, "#e8ecff", 2);
+        drawText(ctx, "BRAKE", 138, 260, "#8b8fa8", 2);
+        drawText(ctx, "SPACE", 56, 276, "#54f2ff", 2);
+        drawText(ctx, "HOLD TO JUMP", 138, 276, "#8b8fa8", 2);
       }
 
       drawPickup(ctx, "norton", 62, 296, state.time * 5);

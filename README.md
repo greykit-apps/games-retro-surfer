@@ -37,12 +37,18 @@ your own trigger (a hidden link, a logo click, a typed phrase).
 | ← → | Lean the board — tap to nudge, hold to carve all the way over |
 | ↓ | Tuck — 1.28× speed along whichever way you're pointing; the puma visibly crouches |
 | ↑ | Brake |
-| Enter / Space | Start, restart |
+| Space | Jump — hold to stay up, against the charge meter |
+| Enter | Start, restart |
+
+Space starts the game when you aren't playing and jumps when you are, so the
+two never collide.
 
 On a touchscreen, one finger anywhere on the canvas is a virtual stick
 anchored where you first touched: drag sideways to lean (analog — about 50px
 of drag is full lean), drag down to tuck, drag up to brake, and tap to start.
-The title screen swaps to touch instructions the first time you use it.
+A **second finger** anywhere is the jump button — steer with one thumb, jump
+with the other, hold for a longer flight. The title screen swaps to touch
+instructions the first time you use it.
 
 The lean is continuous anywhere in ±60°, not a set of fixed positions. Holding
 a key ramps an eased turn rate (168°/s at full commitment, ~80ms to spin up
@@ -92,7 +98,7 @@ inside, tears the picture with scan bars, and turns the baud readout red.
 That's the interesting one, because it feeds the chase: CookieMonster runs at
 a fixed downhill speed, so bogging down in an ad storm hands it the gap even
 though the ads themselves can't hurt you. Sludge is never consumed — it scrolls
-past like terrain — and a hyperlink chain carries you clean over it.
+past like terrain — and a jump carries you clean over it.
 
 **Pickups — small, glowing green.** See below.
 
@@ -106,7 +112,7 @@ cut it, and chaining them without crashing multiplies it up to 3×. The bonus
 lands as a rising `+18KB X3` popup. Crashing resets the chain, and so does
 3.5 seconds without a near miss — so the greedy line is worth taking, but only
 if you can keep taking it. Jumping over something doesn't count; you weren't
-at risk.
+at risk (nor does clearing one mid-jump).
 
 ### Eras
 
@@ -161,7 +167,7 @@ Powerups (about 14% of spawns):
 | --- | --- |
 | Norton shield | 9s — absorbs one hit and makes CookieMonster flee outright |
 | Broadband bolt | 4.5s speed boost |
-| Hyperlink portal | Opens a chain of links to surf — see below |
+| Hyperlink portal | Opens a chain of links to ride — see below |
 | Floppy disk | +1 life (max 5) |
 
 The Norton shield draws as a circular bubble, and while it's up that circle
@@ -173,26 +179,42 @@ drift apart.
 
 ### The hyperlink chain
 
-Taking a hyperlink doesn't just make you briefly untouchable. It puts you in
-the air and lays a line of links running off in the direction you're currently
-travelling. Every link you take **re-aims the rest of the line from wherever
-you're pointing at that instant** — so the trick is to take each one on a
-heading you actually mean to hold. Swerve as you touch it and the remaining
-links swing away with you.
+Taking a hyperlink lays a line of links running off in the direction you're
+currently travelling. Every link you take **re-aims the rest of the line from
+wherever you're pointing at that instant** — so the trick is to take each one
+on a heading you actually mean to hold. Swerve as you touch it and the
+remaining links swing away with you.
 
-Airborne you fly rather than carve: leaning steers you across the field at
-1.6× and costs nothing downhill, and you descend at 1.35×. That makes the
-chain flyable, and makes the jump a genuine escape from CookieMonster rather
-than just a moment of immunity.
+You ride the chain on the ground, at your normal carving speed, dodging
+everything else at the same time. Miss a link and the rest of the line goes
+with it.
 
-Each link pays 18 KB and buys 0.3s more air, on top of 1.6s to start. Take the
-whole chain and the completion bonus is 18 KB per link.
+Each link pays 18 KB, and taking the whole chain pays a further 18 KB per
+link. The line stops where it would run off the field rather than clamping to
+the edge — clamped links stack on the same pixel and could be swept up in one
+go. So a steep heading from mid-field simply lays a shorter chain, and the
+payout scales with length. Shallow, sustainable headings are worth more, which
+is the whole lesson of the mechanic.
 
-The line stops where it would run off the field rather than clamping to the
-edge — clamped links stack on the same pixel and could be swept up in one go.
-So a steep heading from mid-field simply lays a shorter chain, and the payout
-scales with length. Shallow, sustainable headings are worth more, which is the
-whole lesson of the mechanic.
+### The jump meter
+
+Jumping is no longer tied to a pickup — it runs off a charge bar in the bottom
+status strip, filled by clean riding:
+
+- The fill rate scales with your **descent rate**, the same number the baud
+  readout shows, so going fast charges faster. Roughly 12s at cruising speed,
+  19s if you dawdle, 8s flat out.
+- It ramps in over 5 seconds of clean riding, so the meter starts slowly after
+  a knock and speeds up the longer you stay clean.
+- **A collision stops the bar without taking anything off it.** While you're
+  flashing it doesn't move at all; wading through sludge stalls it too, though
+  that doesn't cost you the ramp. The track hatches red while it's stalled, so
+  a frozen bar explains itself.
+- Nothing charges while you're in the air.
+
+A full bar is 1.8 seconds of flight. Hold Space for one long jump, or tap for
+a 0.6s hop — exactly enough to clear an obstacle, and exactly three per bar. A
+small notch on the track marks the minimum charge needed to leave the ground.
 
 Three lives, shown as floppies in the HUD. High score persists in
 `localStorage` under `retroSurferHighScore`.
