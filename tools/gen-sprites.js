@@ -114,13 +114,20 @@ class G {
 }
 
 // ---------------------------------------------------------------- player ---
-// A surfboard rotated by `ang` (radians, 0 = pointing down-screen) with a
-// rider standing on it, leaning into the turn.
-function player(angDeg) {
+// A surfboard rotated by `ang` (radians, 0 = pointing down-screen) with an
+// anthropomorphic puma riding it, leaning into the turn. `tuck` drops the
+// same character into a crouch: knees bent, head down, arms swept back,
+// tail streaming straight out behind — feet stay planted so it reads as a
+// crouch rather than a smaller sprite.
+function player(angDeg, tuck) {
   const g = new G(32, 32);
   const ang = angDeg * Math.PI / 180;
   const sin = Math.sin(ang), cos = Math.cos(ang);
+  const cr = tuck ? 1 : 0;
   const cx = 16, cy = 22, halfL = 13, halfW = 4.0;
+  // unit vectors: `back` points up-track, `side` is across the board
+  const backX = -sin, backY = -cos;
+  const sideX = cos, sideY = -sin;
 
   // Board carries the whole turn: rotate each pixel into board space and
   // taper toward the tips. +v is the nose (the way you're travelling).
@@ -143,31 +150,72 @@ function player(angDeg) {
   const lean = sin * 3.4;
   const bx = 16 + lean;
 
-  // boots planted on the board, spaced along its axis
+  // --- tail: fixed-length curve trailing up-track, held off to one side.
+  // Held straight back it hides behind the rider and reads as a tuft on the
+  // head, so it carries a constant bend, swung further by the lean. Bending
+  // the heading rather than offsetting the tip keeps the length constant —
+  // adding a perpendicular offset made it fan into a blob at part-lean.
+  const tailDir = ang + Math.PI + (cr ? 0.45 : 0.5) - sin * 0.4;
+  const tdx = Math.sin(tailDir), tdy = Math.cos(tailDir);
+  const tpx = Math.cos(tailDir), tpy = -Math.sin(tailDir);
+  const reach = cr ? 15 : 13.5;
+  const curl = cr ? 1.8 : 3.4;
+  const tailBaseX = bx - sin * 1.5 + backX * 1.5;
+  const tailBaseY = 19 + cr * 2 - cos * 1.5 + backY * 1.5;
+  const p1x = tailBaseX + tdx * reach * 0.55 + tpx * curl;
+  const p1y = tailBaseY + tdy * reach * 0.55 + tpy * curl;
+  const p2x = tailBaseX + tdx * reach + tpx * curl * 0.4;
+  const p2y = tailBaseY + tdy * reach + tpy * curl * 0.4;
+  for (let i = 0; i <= 26; i++) {
+    const t = i / 26, it = 1 - t;
+    const tx = it * it * tailBaseX + 2 * it * t * p1x + t * t * p2x;
+    const ty = it * it * tailBaseY + 2 * it * t * p1y + t * t * p2y;
+    g.disc(tx, ty, 2.1 - t * 1.2, t > 0.68 ? "N" : "H");   // dark tip
+  }
+
+  // boots planted on the board, spaced along its axis — these do NOT move
+  // when tucking, which is what sells the crouch
   g.disc(bx - sin * 3.2, 20 - cos * 3.2, 2.3, "K");
   g.disc(bx + sin * 3.2, 20 + cos * 3.2, 2.3, "K");
-  // lower body
-  g.poly([[bx - 3.4, 16], [bx + 3.4, 16], [bx + 3.8, 21], [bx - 3.8, 21]], "P");
-  // torso
-  g.poly([[bx - 3.9, 11], [bx + 3.9, 11], [bx + 3.3, 17], [bx - 3.3, 17]], "T");
-  g.poly([[bx + 1.2, 11], [bx + 3.9, 11], [bx + 3.3, 17], [bx + 1.2, 17]], "J");
-  // arms: one bar through the shoulders, angled with the turn
-  const phi = ang * 0.5, armL = 7.6, sy = 12.5;
-  const ax0 = bx - Math.cos(phi) * armL, ay0 = sy + Math.sin(phi) * armL;
-  const ax1 = bx + Math.cos(phi) * armL, ay1 = sy - Math.sin(phi) * armL;
+  // lower body: bent knees when tucked
+  g.poly([
+    [bx - 3.4, 16 + cr * 3], [bx + 3.4, 16 + cr * 3],
+    [bx + 3.8, 21 + cr], [bx - 3.8, 21 + cr]
+  ], "P");
+  // torso, compressed and pitched forward in the tuck
+  const tTop = 11 + cr * 4.6, tBot = 17 + cr * 2.4;
+  g.poly([[bx - 3.9, tTop], [bx + 3.9, tTop], [bx + 3.3, tBot], [bx - 3.3, tBot]], "T");
+  g.poly([[bx + 1.2, tTop], [bx + 3.9, tTop], [bx + 3.3, tBot], [bx + 1.2, tBot]], "J");
+  // arms: one bar through the shoulders, angled with the turn and swept
+  // back over the board when tucked
+  const phi = ang * 0.5, armL = 7.6 - cr * 1.5, sy = 12.5 + cr * 5;
+  const abx = bx + backX * cr * 2.2, aby = sy + backY * cr * 2.2;
+  const ax0 = abx - Math.cos(phi) * armL, ay0 = aby + Math.sin(phi) * armL;
+  const ax1 = abx + Math.cos(phi) * armL, ay1 = aby - Math.sin(phi) * armL;
   g.line(ax0, ay0, ax1, ay1, 2.4, "T");
-  g.disc(ax0, ay0, 1.6, "F");
-  g.disc(ax1, ay1, 1.6, "F");
-  // head: face under a hair cap
-  const hx = bx + sin * 0.8, hy = 7;
-  g.disc(hx, hy - 1.1, 3.6, "H");
-  g.disc(hx, hy + 0.7, 3.0, "F");
-  g.set(hx - 1.4, hy + 0.4, "K"); g.set(hx + 1.4, hy + 0.4, "K");
-  g.set(hx - 0.6, hy + 2.4, "K"); g.set(hx + 0.6, hy + 2.4, "K");
+  g.disc(ax0, ay0, 1.7, "H");     // paws
+  g.disc(ax1, ay1, 1.7, "H");
+
+  // --- puma head: muzzle, nose, ears. Ducks down and forward in the tuck.
+  const hx = bx + sin * (0.8 + cr * 1.6);
+  const hy = 7 + cr * 5.2;
+  g.poly([[hx - 3.9, hy - 2.2], [hx - 1.2, hy - 2.6], [hx - 2.6, hy - 5.6]], "H");  // ears
+  g.poly([[hx + 3.9, hy - 2.2], [hx + 1.2, hy - 2.6], [hx + 2.6, hy - 5.6]], "H");
+  g.set(hx - 2.6, hy - 3.9, "N"); g.set(hx + 2.6, hy - 3.9, "N");
+  g.disc(hx, hy, 3.9, "H");                       // skull
+  g.disc(hx, hy + 1.7, 2.5, "M");                 // muzzle
+  g.set(hx, hy + 0.6, "N"); g.set(hx - 1, hy + 0.6, "N"); g.set(hx + 1, hy + 0.6, "N");
+  g.set(hx, hy + 1.6, "N");                       // nose bridge down to mouth
+  g.set(hx - 2, hy - 1.2, "K"); g.set(hx + 2, hy - 1.2, "K");   // eyes
+  g.set(hx - 2, hy - 0.2, "K"); g.set(hx + 2, hy - 0.2, "K");
 
   g.outline("K");
   return {
-    palette: { K: "#0a0d18", S: "#1b6fd0", B: "#3aa0ff", C: "#bfe9ff", H: "#ff9f1c", F: "#f5c9a0", T: "#28e0c0", J: "#14a08a", P: "#2b3550" },
+    palette: {
+      K: "#0a0d18", S: "#1b6fd0", B: "#3aa0ff", C: "#bfe9ff",
+      H: "#d19a5c", M: "#f2d9b6", N: "#5c3416",
+      T: "#28e0c0", J: "#14a08a", P: "#2b3550"
+    },
     rows: g.rows()
   };
 }
@@ -518,9 +566,13 @@ function miniFloppy() {
 }
 
 // -------------------------------------------------------------------------
-// nine board angles, 15 degrees apart, pose4 = straight down
+// nine board angles, 15 degrees apart, pose4 = straight down; each also
+// gets a crouched variant used while tucking
 const POSES = {};
-for (let i = 0; i < 9; i++) POSES["pose" + i] = player(-60 + i * 15);
+for (let i = 0; i < 9; i++) {
+  POSES["pose" + i] = player(-60 + i * 15, false);
+  POSES["tuck" + i] = player(-60 + i * 15, true);
+}
 
 const SPRITES = {
   ...POSES,

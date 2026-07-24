@@ -3,7 +3,7 @@
 A 32×32 pixel-art SkiFree/Surf-style easter egg themed around 90s web surfing
 and security. Vanilla JS, no dependencies, no image or audio assets — every
 sprite is character-grid data drawn into an offscreen canvas at load, and the
-CSS injects itself. One `<script>` tag to ship (~61 KB raw, ~12 KB gzipped).
+CSS injects itself. One `<script>` tag to ship (~120 KB raw, ~21 KB gzipped).
 
 ## Drop it in
 
@@ -35,7 +35,7 @@ your own trigger (a hidden link, a logo click, a typed phrase).
 | Key | Action |
 | --- | --- |
 | ← → | Lean the board — tap to nudge, hold to carve all the way over |
-| ↓ | Tuck — 1.28× speed along whichever way you're pointing |
+| ↓ | Tuck — 1.28× speed along whichever way you're pointing; the puma visibly crouches |
 | ↑ | Brake |
 | Enter / Space | Start, restart |
 
@@ -66,8 +66,8 @@ hard carve stays a hard carve and you just cover it faster.
 The art is sampled from the angle every 15°, giving nine board poses across
 the range. Crashing stands you back up at 0°.
 
-Keyboard only, by design. Clicking the canvas focuses it; the game pauses when
-it loses focus or the tab is hidden.
+Clicking the canvas focuses it; the game pauses when it loses focus or the tab
+is hidden.
 
 ## Gameplay
 
@@ -182,11 +182,25 @@ regenerate or add art, then paste its output over the `SPRITES` block:
 node tools/gen-sprites.js sprites.txt
 ```
 
-The nine player poses (`pose0`–`pose8`) are the same board profile rotated
-from −60° to 60° in 15° steps, so the sprite always matches the direction you
-actually travel. Want a smoother turn still? Change the loop that builds
-`POSES` to a smaller step and extend the `POSE` list to match — nothing else
-needs to know how many there are.
+The rider is an anthropomorphic puma — ears, muzzle, and a tail that trails
+up-track and swings opposite the turn as a counterweight.
+
+There are 18 player sprites: nine board angles (`pose0`–`pose8`) rotated from
+−60° to 60° in 15° steps, plus a crouched variant of each (`tuck0`–`tuck8`)
+used while tucking. In the crouch the knees bend, the head ducks down and
+forward, the arms sweep back and the tail streams straighter — but the feet
+stay planted in the same spot, which is what makes it read as a crouch rather
+than a smaller sprite.
+
+Want a smoother turn still? Change the loop that builds `POSES` to a smaller
+step and extend the `POSE` and `TUCK` lists to match — nothing else needs to
+know how many there are, and `check-sprites.js` will fail the build if the two
+lists ever disagree.
+
+The tail bends by a fixed angle off straight-back, rather than being offset
+sideways. Offsetting the tip made it fan into a shapeless blob at part-lean,
+and letting it trail perfectly straight hid it behind the rider at 0°, where
+it read as a tuft on top of the head.
 
 ## Notes
 

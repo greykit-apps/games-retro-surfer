@@ -67,10 +67,12 @@ const zoneKeys = new Set([
   ...refs(/sludge: \[([\s\S]*?)\]/g)
 ]);
 const poseKeys = refs(/var POSE = \[([\s\S]*?)\]/g);
+const tuckKeys = refs(/var TUCK = \[([\s\S]*?)\]/g);
 const powerKeys = new Set([...src.matchAll(/\{ key: "(\w+)", kind:/g)].map((h) => h[1]));
 const extraKeys = new Set(["cookie", "life"]);
 
-for (const [label, keys] of [["zone pool", zoneKeys], ["POSE", poseKeys], ["POWERUPS", powerKeys]]) {
+for (const [label, keys] of [["zone pool", zoneKeys], ["POSE", poseKeys],
+  ["TUCK", tuckKeys], ["POWERUPS", powerKeys]]) {
   for (const k of keys) {
     if (!sprites[k]) errors.push(`${label} references "${k}", which has no sprite`);
   }
@@ -80,9 +82,12 @@ for (const k of extraKeys) {
 }
 
 if (poseKeys.size < 3) errors.push("POSE list looks wrong — fewer than 3 board angles");
+if (tuckKeys.size !== poseKeys.size) {
+  errors.push(`TUCK has ${tuckKeys.size} entries but POSE has ${poseKeys.size} — every board angle needs a crouched variant`);
+}
 
 // --- and everything that exists should be reachable -----------------------
-const reachable = new Set([...zoneKeys, ...poseKeys, ...powerKeys, ...extraKeys]);
+const reachable = new Set([...zoneKeys, ...poseKeys, ...tuckKeys, ...powerKeys, ...extraKeys]);
 for (const name of names) {
   if (!reachable.has(name)) warnings.push(`${name} is defined but nothing can ever spawn it`);
 }
@@ -100,4 +105,4 @@ if (errors.length) {
   console.error(`\n${errors.length} error(s)`);
   process.exit(1);
 }
-console.log(`  ok — ${zoneKeys.size} spawnable obstacles, ${poseKeys.size} board angles, no orphans`);
+console.log(`  ok — ${zoneKeys.size} spawnable obstacles, ${poseKeys.size} board angles (+${tuckKeys.size} crouched), no orphans`);
