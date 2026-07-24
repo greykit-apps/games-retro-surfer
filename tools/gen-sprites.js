@@ -510,6 +510,20 @@ function floppy() {
   return { palette: { K: "#0a0d18", B: "#2b3550", D: "#8b8fa8", M: "#c9d4e6", W: "#e8ecff" }, rows: g.rows() };
 }
 
+// A single link in the chain you surf while airborne — two interlocking
+// rings, small enough to read as a token rather than an obstacle.
+function link() {
+  const g = new G(24, 24);
+  g.ring(8, 12, 6.4, 2.4, "C");
+  g.ring(16, 12, 6.4, 2.4, "C");
+  g.ring(8, 12, 6.4, 1, "W");
+  g.ring(16, 12, 6.4, 1, "W");
+  g.line(5, 8, 7, 6, 1, "W");
+  g.line(13, 8, 15, 6, 1, "W");
+  g.outline("K");
+  return { palette: { K: "#0a0d18", C: "#2b6ef6", W: "#a8e8ff" }, rows: g.rows() };
+}
+
 function portal() {
   const g = new G(32, 32);
   g.disc(16, 16, 14, "P");
@@ -584,7 +598,7 @@ const SPRITES = {
   popupstorm: popupstorm(), glitch: glitch(), construction: construction(),
   // pickups + chaser
   norton: norton(), bolt: bolt(), floppy: floppy(), portal: portal(),
-  cookie: cookie(), life: miniFloppy()
+  link: link(), cookie: cookie(), life: miniFloppy()
 };
 
 const LABELS = {

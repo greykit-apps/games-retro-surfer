@@ -35,6 +35,9 @@
   var POSE_STEP = 15;
   var NEAR_MISS = 15;    // px of clearance that still counts as a near miss
   var MAGNET = 34;       // px within which a pickup starts reaching for you
+  var SHIELD_R = 15;     // Norton bubble radius — drawn and collided alike
+  var LINK_COUNT = 4;    // links opened by one hyperlink pickup
+  var LINK_GAP = 95;     // px between links along the line you are flying
   var TURN_RATE = 168;   // deg/sec once the lean is fully committed
   var TURN_EASE = 12;    // how fast turn speed ramps up and dies away
   var POSE = ["pose0", "pose1", "pose2", "pose3", "pose4",
@@ -1533,6 +1536,35 @@
         "..............KKKKK............."
       ]
     },
+    link: {
+      palette: { K: "#0a0d18", C: "#2b6ef6", W: "#a8e8ff" },
+      rows: [
+        "........................",
+        "........................",
+        "........................",
+        "........................",
+        "........................",
+        "......KKKKK...KKKKK.....",
+        "....KKWWWWWKKKWWWWWKK...",
+        "...KWWWCCCCWWWWCCCCWWK..",
+        "..KWWWCCCCCWWWCCCCCCWWK.",
+        "..KWCCKKKKKWCWKKKKKCCWK.",
+        ".KWCCK...KWCCCWK...KCCWK",
+        ".KWCCK...KWCCCWK...KCCWK",
+        ".KWCCK...KWCCCWK...KCCWK",
+        ".KWCCK...KWCCCWK...KCCWK",
+        ".KWCCK...KWCCCWK...KCCWK",
+        "..KWCCKKKKKWCWKKKKKCCWK.",
+        "..KWWCCCCCCWWWCCCCCCWWK.",
+        "...KWWCCCCCWWWCCCCCWWK..",
+        "....KKWWWWWKKKWWWWWKK...",
+        "......KKKKK...KKKKK.....",
+        "........................",
+        "........................",
+        "........................",
+        "........................"
+      ]
+    },
     cookie: {
       label: "COOKIEMONSTER",
       palette: { K: "#0a0d18", T: "#d9963f", D: "#8c5a1c", M: "#4a2a10", W: "#ffffff", R: "#ff3355", V: "#b07cff" },
@@ -1860,6 +1892,8 @@
         pops: [],
         combo: 0,
         comboTime: 0,
+        chain: 0,
+        chainTotal: 0,
         zone: 0,
         bg: ZONES[0].bg.slice(),
         grid: ZONES[0].grid.slice(),
@@ -2037,10 +2071,20 @@
     }
 
     // --- collisions -------------------------------------------------
+    // Normally a tight box around the puma's body, not the whole 32x32 cell.
+    // With Norton up, the bubble itself is what collides — the drawn circle
+    // and the hitbox are the same shape, so it never eats a hit that looks
+    // like a miss. It is a bigger target than the bare body, which is the
+    // trade for absorbing a hit.
     function hits(e) {
-      // tight boxes: the player's body, not the whole 32x32 cell
-      var ax = state.px - 7, ay = PLAYER_Y + 6, aw = 14, ah = 20;
       var bx = e.x + 4, by = e.y + 4, bw = e.w - 8, bh = e.h - 8;
+      if (state.shield > 0) {
+        var cx = state.px, cy = PLAYER_Y + 16;
+        var nx = clamp(cx, bx, bx + bw), ny = clamp(cy, by, by + bh);
+        var dx = cx - nx, dy = cy - ny;
+        return dx * dx + dy * dy <= SHIELD_R * SHIELD_R;
+      }
+      var ax = state.px - 7, ay = PLAYER_Y + 6, aw = 14, ah = 20;
       return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
     }
 
@@ -2094,14 +2138,93 @@
         say("BROADBAND");
         beep(700, 0.08); setTimeout(function () { beep(1000, 0.08); }, 60);
       } else if (kind === "jump") {
-        state.jump = 1.15;
-        say("HYPERLINK JUMP");
-        beep(600, 0.07); setTimeout(function () { beep(900, 0.09); }, 70);
+        startLinkChain();
       } else if (kind === "life") {
         state.lives = Math.min(5, state.lives + 1);
         say("FILE SAVED  +1");
         beep(520, 0.09); setTimeout(function () { beep(780, 0.12); }, 80);
       }
+    }
+
+    // --- hyperlink chain --------------------------------------------
+    // Taking a hyperlink doesn't just make you briefly untouchable — it opens
+    // a trail of links ahead and puts you in the air to surf them. Airborne
+    // you fly rather than carve, so leaning costs no descent: the chain is a
+    // weaving run you have to actually fly, and the links only exist while
+    // you're up there.
+    // Lay the rest of the chain as a straight line running off in the
+    // direction you are travelling right now. Every link you take re-aims it
+    // from where you're pointing at that instant, so the trick is to take
+    // each one on a heading you actually mean to hold — swerve as you touch
+    // it and the rest of the chain swings away with you.
+    function layChain(count) {
+      for (var j = state.entities.length - 1; j >= 0; j--) {
+        if (state.entities[j].kind === "link") state.entities.splice(j, 1);
+      }
+      var ang = state.lean * Math.PI / 180;
+      var vx = Math.sin(ang) * 1.6, vy = 1.35;      // airborne velocity
+      var len = Math.sqrt(vx * vx + vy * vy);
+      vx /= len; vy /= len;
+      var w = spriteW("link"), h = spriteH("link");
+      var laid = 0;
+      for (var i = 0; i < count; i++) {
+        var d = LINK_GAP * (i + 1);
+        var lx = state.px + vx * d - w / 2;
+        // The line stops where it runs off the field rather than clamping:
+        // clamped links stack on the same pixel at the wall, which you could
+        // then sweep up in one go. A heading into the wall is simply a
+        // shorter chain — which is the game telling you it's a bad heading.
+        if (lx < 6 || lx > W - w - 6) break;
+        state.entities.push({
+          key: "link", kind: "link",
+          x: lx, y: PLAYER_Y + vy * d,
+          w: w, h: h,
+          drift: 0, bob: Math.random() * Math.PI * 2
+        });
+        laid++;
+      }
+      // only ever promise what actually fits on the field
+      state.chainTotal = state.chain + laid;
+    }
+
+    function startLinkChain() {
+      state.jump = 1.6;
+      state.chain = 0;
+      state.chainTotal = LINK_COUNT;
+      layChain(LINK_COUNT);
+      say("HYPERLINK OPEN");
+      beep(600, 0.07);
+      setTimeout(function () { beep(900, 0.09); }, 70);
+    }
+
+    function grabLink() {
+      state.chain++;
+      state.jump += 0.3;                  // each link buys a little more air
+      state.distance += 18 * 9;
+      pop("+18KB", "#54f2ff");
+      beep(760 + state.chain * 120, 0.06, "triangle", 0.04);
+      layChain(state.chainTotal - state.chain);   // re-aim from here
+    }
+
+    // Called once when you touch down: pay out the chain, and drop any links
+    // you didn't reach so they can't be collected from the ground.
+    function land() {
+      for (var i = state.entities.length - 1; i >= 0; i--) {
+        if (state.entities[i].kind === "link") state.entities.splice(i, 1);
+      }
+      if (state.chain >= state.chainTotal && state.chainTotal > 0) {
+        // scaled by length so a deliberately short chain laid into a wall
+        // isn't a cheap way to farm the completion bonus
+        var bonus = 18 * state.chainTotal;
+        state.distance += bonus * 9;
+        say("CHAIN COMPLETE  +" + bonus + "KB");
+        beep(1000, 0.09);
+        setTimeout(function () { beep(1400, 0.14); }, 90);
+      } else if (state.chain > 0) {
+        say(state.chain + "/" + state.chainTotal + " LINKS");
+      }
+      state.chain = 0;
+      state.chainTotal = 0;
     }
 
     // --- near misses ------------------------------------------------
@@ -2231,10 +2354,19 @@
       var target = baseSpeed() * mult;
       state.speed += (target - state.speed) * Math.min(1, dt * 3);
 
-      // travel along the board: carving trades descent for lateral speed
+      // On the ground you travel along the board, so carving trades descent
+      // for lateral speed. In the air you're flying: lean steers you across
+      // the field and costs nothing downhill, which is what makes the chain
+      // flyable — and what makes the jump a real escape from the virus.
       var ang = state.lean * Math.PI / 180;
-      var descent = state.speed * Math.cos(ang);
-      var lateral = state.speed * Math.sin(ang);
+      var descent, lateral;
+      if (state.jump > 0) {
+        descent = state.speed * 1.35;
+        lateral = state.speed * Math.sin(ang) * 1.6;
+      } else {
+        descent = state.speed * Math.cos(ang);
+        lateral = state.speed * Math.sin(ang);
+      }
       state.descent = descent;
       state.distance += descent * dt;
 
@@ -2252,7 +2384,9 @@
       state.invuln = Math.max(0, state.invuln - dt);
       state.shield = Math.max(0, state.shield - dt);
       state.boost = Math.max(0, state.boost - dt);
+      var wasAirborne = state.jump > 0;
       state.jump = Math.max(0, state.jump - dt);
+      if (wasAirborne && state.jump <= 0) land();
       state.shake = Math.max(0, state.shake - dt * 14);
       state.drag = Math.max(0, state.drag - dt);
       if (state.drag <= 0) state.dragging = false;
@@ -2306,6 +2440,16 @@
               say(SPRITES[e.key].label);
               beep(110, 0.3, "sawtooth", 0.045);
             }
+          }
+          continue;
+        }
+
+        // chain links: only live while you're airborne, and only reachable
+        // by flying through them
+        if (e.kind === "link") {
+          if (hits(e)) {
+            state.entities.splice(i, 1);
+            grabLink();
           }
           continue;
         }
@@ -2385,7 +2529,10 @@
       // powerup timers
       var y = 30;
       if (state.shield > 0) { drawText(ctx, "SHIELD " + Math.ceil(state.shield), 6, y, "#ffcc33", 2); y += 14; }
-      if (state.boost > 0) { drawText(ctx, "TURBO " + Math.ceil(state.boost), 6, y, "#54f2ff", 2); }
+      if (state.boost > 0) { drawText(ctx, "TURBO " + Math.ceil(state.boost), 6, y, "#54f2ff", 2); y += 14; }
+      if (state.chainTotal > 0) {
+        drawText(ctx, "LINKS " + state.chain + "/" + state.chainTotal, 6, y, "#2b6ef6", 2);
+      }
 
       var baud = Math.round(state.descent * 200);
       drawText(ctx, baud + " BPS", W - textWidth(baud + " BPS", 2) - 6, 30,
@@ -2428,10 +2575,20 @@
         scale = 1 + arc * 0.28;      // reads as height, not just a lift
       }
 
+      // Shield bubble. Plotted point by point rather than with arc() so it
+      // stays crisp — a stroked path anti-aliases into a soft grey ring at
+      // this resolution. Radius is SHIELD_R, the same circle hits() uses.
       if (state.shield > 0 && !(state.shield < 2.5 && Math.floor(state.shield * 8) % 2 === 0)) {
-        ctx.strokeStyle = "#ffcc33";
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x - 2.5, y - 2.5, 37, 37);
+        var bcx = state.px, bcy = y + 16;
+        ctx.fillStyle = "#ffcc33";
+        for (var a = 0; a < 6.2832; a += 0.045) {
+          ctx.fillRect(Math.round(bcx + Math.cos(a) * SHIELD_R),
+            Math.round(bcy + Math.sin(a) * SHIELD_R), 1, 1);
+        }
+        ctx.fillStyle = "rgba(255,204,51,.10)";
+        ctx.beginPath();
+        ctx.arc(bcx, bcy, SHIELD_R, 0, 6.2832);
+        ctx.fill();
       }
 
       if (state.boost > 0) {
@@ -2556,7 +2713,7 @@
       }
       for (i = 0; i < state.entities.length; i++) {
         e = state.entities[i];
-        if (e.kind === "powerup") {
+        if (e.kind === "powerup" || e.kind === "link") {
           drawPickup(ctx, e.key, e.x, e.y + Math.sin(state.time * 6 + e.bob) * 2,
             state.time * 5 + e.bob);
         }

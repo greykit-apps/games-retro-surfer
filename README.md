@@ -92,7 +92,7 @@ inside, tears the picture with scan bars, and turns the baud readout red.
 That's the interesting one, because it feeds the chase: CookieMonster runs at
 a fixed downhill speed, so bogging down in an ad storm hands it the gap even
 though the ads themselves can't hurt you. Sludge is never consumed — it scrolls
-past like terrain — and the hyperlink jump carries you clean over it.
+past like terrain — and a hyperlink chain carries you clean over it.
 
 **Pickups — small, glowing green.** See below.
 
@@ -161,8 +161,38 @@ Powerups (about 14% of spawns):
 | --- | --- |
 | Norton shield | 9s — absorbs one hit and makes CookieMonster flee outright |
 | Broadband bolt | 4.5s speed boost |
-| Hyperlink portal | 1.15s airborne jump — pass straight over obstacles |
+| Hyperlink portal | Opens a chain of links to surf — see below |
 | Floppy disk | +1 life (max 5) |
+
+The Norton shield draws as a circular bubble, and while it's up that circle
+*is* your hitbox — so what you see is exactly what collides, and it never eats
+a hit that looked like a miss. It's a wider target than the bare body, which
+is the trade for absorbing a hit (it also sweeps up pickups more easily).
+`SHIELD_R` sets both the drawn radius and the collision radius; they can't
+drift apart.
+
+### The hyperlink chain
+
+Taking a hyperlink doesn't just make you briefly untouchable. It puts you in
+the air and lays a line of links running off in the direction you're currently
+travelling. Every link you take **re-aims the rest of the line from wherever
+you're pointing at that instant** — so the trick is to take each one on a
+heading you actually mean to hold. Swerve as you touch it and the remaining
+links swing away with you.
+
+Airborne you fly rather than carve: leaning steers you across the field at
+1.6× and costs nothing downhill, and you descend at 1.35×. That makes the
+chain flyable, and makes the jump a genuine escape from CookieMonster rather
+than just a moment of immunity.
+
+Each link pays 18 KB and buys 0.3s more air, on top of 1.6s to start. Take the
+whole chain and the completion bonus is 18 KB per link.
+
+The line stops where it would run off the field rather than clamping to the
+edge — clamped links stack on the same pixel and could be swept up in one go.
+So a steep heading from mid-field simply lays a shorter chain, and the payout
+scales with length. Shallow, sustainable headings are worth more, which is the
+whole lesson of the mechanic.
 
 Three lives, shown as floppies in the HUD. High score persists in
 `localStorage` under `retroSurferHighScore`.

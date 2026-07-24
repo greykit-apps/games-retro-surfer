@@ -69,7 +69,7 @@ const zoneKeys = new Set([
 const poseKeys = refs(/var POSE = \[([\s\S]*?)\]/g);
 const tuckKeys = refs(/var TUCK = \[([\s\S]*?)\]/g);
 const powerKeys = new Set([...src.matchAll(/\{ key: "(\w+)", kind:/g)].map((h) => h[1]));
-const extraKeys = new Set(["cookie", "life"]);
+const extraKeys = new Set(["cookie", "life", "link"]);
 
 for (const [label, keys] of [["zone pool", zoneKeys], ["POSE", poseKeys],
   ["TUCK", tuckKeys], ["POWERUPS", powerKeys]]) {
