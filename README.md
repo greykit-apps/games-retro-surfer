@@ -3,7 +3,7 @@
 A 32×32 pixel-art SkiFree/Surf-style easter egg themed around 90s web surfing
 and security. Vanilla JS, no dependencies, no image or audio assets — every
 sprite is character-grid data drawn into an offscreen canvas at load, and the
-CSS injects itself. One `<script>` tag to ship (~120 KB raw, ~21 KB gzipped).
+CSS injects itself. One `<script>` tag to ship (~165 KB raw, ~29 KB gzipped).
 
 ## Drop it in
 
@@ -83,20 +83,27 @@ when you carve).
 
 Three kinds of thing come at you, and size tells you which is which:
 
-**Hazards — small, cost a life.** Dead services and software, one 32×32 icon
-each: Netscape, an AOL free-trial CD, an ICQ flower, Winamp, a 404 page,
-Clippy, the MSN butterfly, the IE `e`, a blue screen, a Java applet, a hit
-counter. Hit one and you lose a life, drop to half speed, and snap straight.
+**Hazards — small, cost a life.** Twenty-seven dead services and pieces of
+software, one 32×32 icon each. Hit one and you lose a life, drop to half
+speed, and snap straight.
+
+| Era it belongs to | Icons |
+| --- | --- |
+| Dial-up | Netscape, AOL free-trial CD, ICQ flower, 404 page, hit counter, 56k modem, a lifted phone handset, a guestbook, a flying toaster, an autoplaying MIDI |
+| Multimedia | Winamp, a Java applet, the MSN butterfly, Ask Jeeves, the hourglass cursor, a SKIP INTRO button, a dead Tamagotchi, a dancing hamster |
+| Broadband | the IE `e`, a blue screen, the Napster cat, Y2K on a beige CRT, a bondi-blue iMac |
+| Spyware | BonziBuddy, a browser buried under six toolbars, the ILOVEYOU envelope, the Pets.com sock puppet |
 
 **Sludge — large, harmless, and it kills your speed.** Islands of junk you
 wade through rather than crash into: a popup storm (a pile of overlapping
-Win95 ad windows), a corrupted-signal artifact (torn RGB scanline noise), and
-an UNDER CONSTRUCTION zone with barriers, cones and a dirt mound. Contact
-costs no health at all — it drops you to **0.3× speed** for as long as you're
-inside, tears the picture with scan bars, and turns the baud readout red.
+Win95 ad windows), a corrupted-signal artifact (torn RGB scanline noise), an
+UNDER CONSTRUCTION zone with barriers, cones and a dirt mound, and a nested
+frameset that is more scrollbar than page. Contact costs no health at all — it
+drops you to **0.3× speed** for as long as you're inside, tears the picture
+with scan bars, and turns the baud readout red.
 
-That's the interesting one, because it feeds the chase: CookieMonster runs at
-a fixed downhill speed, so bogging down in an ad storm hands it the gap even
+That's the interesting one, because it feeds the chase: Clippy runs at a
+fixed downhill speed, so bogging down in an ad storm hands it the gap even
 though the ads themselves can't hurt you. Sludge is never consumed — it scrolls
 past like terrain — and a jump carries you clean over it.
 
@@ -121,10 +128,14 @@ swaps the line-up of junk:
 
 | From | Era | Look |
 | --- | --- | --- |
-| 0 KB | 1994 DIAL-UP | navy; Netscape, AOL, ICQ, Clippy, 404s, hit counters |
-| 300 KB | 1997 MULTIMEDIA | purple; Winamp, Java, MSN, more glitch fields |
-| 700 KB | 1999 BROADBAND | teal; IE, MSN, blue screens |
-| 1300 KB | 2001 SPYWARE | red; blue screens, IE, wall-to-wall popup storms |
+| 0 KB | 1994 DIAL-UP | navy; Netscape, AOL, ICQ, modems, guestbooks, flying toasters |
+| 300 KB | 1997 MULTIMEDIA | purple; Winamp, Java, MSN, Jeeves, Tamagotchis, SKIP INTRO, more glitch fields |
+| 700 KB | 1999 BROADBAND | teal; IE, blue screens, Napster, Y2K, the iMac |
+| 1300 KB | 2001 SPYWARE | red; BonziBuddy, toolbar stacks, ILOVEYOU, Pets.com, wall-to-wall popup storms |
+
+Each era draws from a pool of ten to twelve hazards, so the same run rarely
+shows you the same thing twice in a row and the line-up turns over completely
+by the time you reach the red.
 
 Colours ease over about a second rather than cutting, the era name sits in the
 HUD, and crossing announces itself. `ZONES` at the top of the file holds the
@@ -138,12 +149,30 @@ Powerups within 34px start pulling toward the player, so a nearly-perfect line
 still counts as a grab. It's enough to forgive a few pixels, not enough to
 collect something you didn't go for.
 
-**CookieMonster** spawns behind you and runs at a fixed downhill speed, so the
-gap is driven by your descent rate. Carving sideways or braking hands it
-ground; pointing straight and tucking is what pulls away. Escape it and you
-bank a distance bonus ("VIRUS QUARANTINED"); let it catch you and you lose a
-life. That's the core tension: obstacles push you into turns, turns feed the
-virus, and getting straight again costs you two keypresses.
+**Clippy** spawns behind you and runs at a fixed downhill speed, so the gap
+is driven by your descent rate. Carving sideways or braking hands it ground;
+pointing straight and tucking is what pulls away. Escape it and you bank a
+distance bonus ("ASSISTANT DISMISSED"); let it catch you and you lose a life.
+That's the core tension: obstacles push you into turns, turns feed the
+assistant, and getting straight again costs you two keypresses.
+
+It announces itself with "IT LOOKS LIKE YOU'RE FLEEING", catches you with
+"NEED HELP WITH THAT?", and the title screen counts your run's "ASSISTS
+DODGED". Clippy used to be a small hazard you could hit; promoting it to the
+chaser is why it no longer appears in any era's `hazards` pool.
+
+He is the one sprite off the 32px grid — **64×64, twice the player** — because
+a chaser has to read as a specific character rather than a category, and that
+needs detail the icons don't. Getting there took some doing: at 40px he read
+as an owl, and the fixes were all proportion and symmetry rather than detail.
+A paperclip is roughly 1:2.5, so drawing it wide turns it into a face; the
+wire is folded as one continuous strand the way a real clip is, so its top
+loop sits off-centre; the wire is re-laid *over* the eyes so the clip is
+clearly the object and the eyes are stuck to it; the eyes are tall ovals with
+both pupils cut to the same side, because two symmetric circles staring
+straight out is an owl no matter what you hang underneath them; and the brows
+stay thin and inside the eyes' own width, since sweeping them up and out makes
+them ear tufts. All of that is commented in `clippy()` in the generator.
 
 ### Green means good
 
@@ -151,21 +180,35 @@ Anything you should grab is drawn with a pulsing green halo — a 1px outline
 plus a softer 2px glow, stamped around the sprite's real silhouette rather
 than baked into the art, so it works for any pickup you add later. Hazards and
 sludge get nothing; sludge is told apart by being three times the size. The
-title screen shows the four pickups glowing next to an unglowing CookieMonster
+title screen shows the four pickups glowing next to an unglowing Clippy
 with "GRAB THE GREEN ONES / BIG JUNK JUST SLOWS YOU" underneath, so both rules
 are taught before the first run.
 
 The colour isn't the only cue: pickups also bob up and down while obstacles
 sit still, which keeps the distinction working without relying on hue.
 
-To restyle it, change `GOOD` (the highlight colour) or `drawPickup` in
-`retro-surfer.js`.
+**That green is reserved.** A bright green hazard reads as a pickup at speed
+no matter what shape it is, and the game used to have three: the ICQ flower
+was a near-solid `#3ddc4a` blob, and Winamp's analyser and the hit counter's
+digits were drawn in `#39ff14` — the exact hex of the halo. They're gone. ICQ
+now wears its *offline* red, which is what the flower actually did when your
+contact vanished; Winamp's bars run the dim-green/amber/red gradient the real
+analyser used; the hit counter is an amber odometer.
+
+`tools/check-sprites.js` enforces the rule, so this can't come back by
+accident: any hazard or sludge sprite with a palette colour inside the
+reserved band (hue 80–160° at mid lightness and decent saturation) fails the
+check. A new sprite that wants green has to go dark or pick another hue.
+
+`GOOD` is also the only green in the HUD, so "GRAB THE GREEN ONES" on the
+title screen is drawn in literally the colour it's describing. To restyle,
+change `GOOD` or `drawPickup` in `retro-surfer.js`.
 
 Powerups (about 14% of spawns):
 
 | Icon | Effect |
 | --- | --- |
-| Norton shield | 9s — absorbs one hit and makes CookieMonster flee outright |
+| Norton shield | 9s — absorbs one hit and makes Clippy back off outright |
 | Broadband bolt | 4.5s speed boost |
 | Hyperlink portal | Opens a chain of links to ride — see below |
 | Floppy disk | +1 life (max 5) |
@@ -223,15 +266,35 @@ Three lives, shown as floppies in the HUD. High score persists in
 
 Sprites live in the `SPRITES` object as plain character grids — one character
 per pixel indexing that sprite's own palette, `.` for transparent. Edit a row
-by hand and the change shows up directly.
+by hand and the change shows up directly. Nothing enforces a size: hazards and
+the player are 32×32, sludge runs to 104×76, and Clippy is 64×64. Sprites are
+blitted 1:1, so a grid's dimensions *are* its on-screen size.
 
 They were authored with `tools/gen-sprites.js`, a Node script that draws each
 icon from primitives (discs, polygons, rotated board profiles, 3×5 text) and
 prints the grids. It is not part of the shipped game — use it if you want to
-regenerate or add art, then paste its output over the `SPRITES` block:
+regenerate or add art:
 
 ```bash
 node tools/gen-sprites.js sprites.txt
+```
+
+`tools/splice.js` runs the generator and drops the result straight into
+`retro-surfer.js`, replacing the whole `SPRITES` block, which beats pasting
+2000 lines by hand:
+
+```bash
+node tools/splice.js && node tools/check-sprites.js
+```
+
+Pixel art authored blind is pixel art that doesn't read, so
+`tools/sheet.js` renders the shipped grids to a PNG contact sheet — every
+sprite at 4× with its key underneath, or just the ones you name. No
+dependencies; it writes the PNG itself. This is the fastest way to find out
+that your flying toaster looks like a stapler:
+
+```bash
+node tools/sheet.js sheet.png toaster napster sockpuppet
 ```
 
 The rider is an anthropomorphic puma — ears, muzzle, and a tail that trails
@@ -272,7 +335,7 @@ it read as a tuft on top of the head.
   hanging off you.
 - Background motes stretch into streaks in proportion to your descent rate —
   speed lines for free, rather than a second effect system.
-- CookieMonster gets a blinking chevron at the top of the screen while it's
+- Clippy gets a blinking chevron at the top of the screen while it's
   still above the view, so being hunted is never a surprise you couldn't see.
 - Audio is a handful of WebAudio square-wave blips generated on the fly; it
   degrades to silence where WebAudio isn't available.
@@ -285,6 +348,8 @@ it read as a tuft on top of the head.
 - `retro-surfer.js` — the whole game (art and styles included)
 - `index.html` — playable page; deployed, and doubles as the local demo
 - `tools/gen-sprites.js` — sprite art generator, dev-only
+- `tools/splice.js` — regenerates the art and writes it into the game, dev-only
+- `tools/sheet.js` — PNG contact sheet of every sprite, dev-only
 - `tools/check-sprites.js` — art integrity check, run in CI
 
 ## Deploying
@@ -301,8 +366,9 @@ deploy fails at the `ssh` step with empty variables, that's the thing to check.
 
 The validate stage runs `node --check` plus `tools/check-sprites.js`, which
 catches the failure modes this codebase actually has — a grid row that lost a
-character, a pixel referencing a colour that isn't in its palette, or a sprite
-no era can spawn. None of those throw at runtime; they just render wrong.
+character, a pixel referencing a colour that isn't in its palette, a sprite no
+era can spawn, or a hazard wearing the reserved pickup green. None of those
+throw at runtime; they just render wrong.
 
 ```bash
 node tools/check-sprites.js

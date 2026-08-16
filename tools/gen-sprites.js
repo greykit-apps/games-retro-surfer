@@ -255,18 +255,22 @@ function aol() {
   return { palette: { K: "#0a0d18", S: "#c9d4e6", D: "#7a8299", B: "#2b6ef6", W: "#ffffff" }, rows: g.rows() };
 }
 
+// The ICQ flower, drawn in its OFFLINE red rather than its online green.
+// Period-accurate — the flower went red the moment your contact vanished —
+// and it keeps the sprite out of the reserved pickup green, which a solid
+// green blob this size sat squarely inside.
 function icq() {
   const g = new G(32, 32);
   // antenna
-  g.line(16, 12, 16, 3, 1.6, "G");
-  g.disc(16, 2.5, 2, "R");
+  g.line(16, 12, 16, 3, 1.6, "D");
+  g.disc(16, 2.5, 2, "Y");
   // four petals
-  [[10, 14], [22, 14], [10, 24], [22, 24]].forEach(p => g.disc(p[0], p[1], 5.6, "G"));
-  g.disc(16, 19, 6.5, "G");
+  [[10, 14], [22, 14], [10, 24], [22, 24]].forEach(p => g.disc(p[0], p[1], 5.6, "R"));
+  g.disc(16, 19, 6.5, "R");
   g.disc(16, 19, 3, "W");
   g.disc(16, 19, 1.6, "D");
   g.outline("K");
-  return { palette: { K: "#0a0d18", G: "#3ddc4a", D: "#1b7a2a", W: "#eafff0", R: "#ff3355" }, rows: g.rows() };
+  return { palette: { K: "#0a0d18", R: "#ef4136", D: "#8f1f18", W: "#ffe8e6", Y: "#ffcc33" }, rows: g.rows() };
 }
 
 function winamp() {
@@ -276,14 +280,20 @@ function winamp() {
   g.rect(27, 6, 2, 2, "R");
   g.rect(24, 6, 2, 2, "Y");
   g.rect(2, 11, 13, 9, "L");           // LCD
-  g.text("MP3", 3, 13, "G", 1);
-  // EQ bars
+  g.text("MP3", 3, 13, "Y", 1);
+  // EQ bars, bottom-up green/amber/red the way the analyser actually ran —
+  // the green is the dim base only, well clear of the pickup green
   const hts = [3, 6, 4, 8, 5, 7, 3, 6];
-  hts.forEach((h, i) => g.rect(17 + i * 2, 20 - h, 1, h, "G"));
+  hts.forEach((h, i) => {
+    const x = 17 + i * 2;
+    g.rect(x, 20 - h, 1, h, "Y");
+    g.rect(x, 19, 1, 1, "E");
+    if (h >= 6) g.rect(x, 20 - h, 1, 1, "R");
+  });
   g.rect(2, 22, 28, 2, "S");           // seek bar
   g.rect(4, 21, 3, 4, "Y");
   g.outline("K");
-  return { palette: { K: "#0a0d18", D: "#39405c", T: "#6a76a0", L: "#0d2417", G: "#39ff14", Y: "#ffcc33", R: "#ff3355", S: "#20263a" }, rows: g.rows() };
+  return { palette: { K: "#0a0d18", D: "#39405c", T: "#6a76a0", L: "#141008", E: "#186b25", Y: "#ffcc33", R: "#ff3355", S: "#20263a" }, rows: g.rows() };
 }
 
 // deterministic noise so regenerating the art doesn't reshuffle it
@@ -330,7 +340,7 @@ function glitch() {
       const bw = 4 + (rnd() * 20 | 0);
       const r = rnd();
       const c = r < 0.42 ? "D" : r < 0.52 ? "." : r < 0.67 ? "M"
-        : r < 0.82 ? "C" : r < 0.9 ? "G" : "W";
+        : r < 0.82 ? "C" : r < 0.9 ? "O" : "W";
       g.rect(x, y, bw, bh, c);
       x += bw;
     }
@@ -340,7 +350,7 @@ function glitch() {
   for (let i = 0; i < 5; i++) {
     g.rect(0, rnd() * 58 | 0, 88, 1 + (rnd() * 2 | 0), rnd() < 0.5 ? "W" : "K");
   }
-  return { palette: { K: "#0a0d18", D: "#1c2450", M: "#ff3ce0", C: "#54f2ff", G: "#39ff14", W: "#e8ecff" }, rows: g.rows() };
+  return { palette: { K: "#0a0d18", D: "#1c2450", M: "#ff3ce0", C: "#54f2ff", O: "#ff7a1c", W: "#e8ecff" }, rows: g.rows() };
 }
 
 function notfound() {
@@ -352,26 +362,6 @@ function notfound() {
   g.rect(7, 26, 12, 2, "D");
   g.outline("K");
   return { palette: { K: "#0a0d18", W: "#e8ecff", D: "#8b8fa8", R: "#ff3355" }, rows: g.rows() };
-}
-
-function clippy() {
-  const g = new G(32, 32);
-  // paperclip: outer loop, inner loop
-  g.ring(16, 17, 11, 2.4, "M");
-  g.rect(5, 2, 22, 14, ".");           // cut the tops off to make U shapes
-  g.line(5, 6, 5, 17, 2.4, "M");
-  g.line(27, 6, 27, 17, 2.4, "M");
-  g.line(5, 6, 16, 6, 2.4, "M");       // top bend
-  g.ring(16, 18, 5.5, 2.4, "M");
-  g.rect(9, 4, 14, 14, ".");
-  g.line(11, 12, 11, 18, 2.4, "M");
-  g.line(21, 9, 21, 18, 2.4, "M");
-  g.line(11, 12, 21, 12, 2.4, "M");
-  // eyes
-  g.disc(12, 9, 3.4, "W"); g.disc(21, 9, 3.4, "W");
-  g.disc(12.6, 9.4, 1.5, "K"); g.disc(21.6, 9.4, 1.5, "K");
-  g.outline("K");
-  return { palette: { K: "#0a0d18", M: "#c9d4e6", W: "#ffffff" }, rows: g.rows() };
 }
 
 function construction() {
@@ -470,11 +460,343 @@ function hitcounter() {
   const g = new G(32, 32);
   g.rrect(1, 6, 30, 20, 2, "K");
   g.rect(3, 9, 26, 14, "D");
-  g.text("004201", 4, 13, "G", 1);
+  g.text("004201", 4, 13, "A", 1);     // amber odometer digits, not LED green
   g.rect(3, 9, 26, 1, "S");
-  for (let i = 1; i < 6; i++) g.rect(3 + i * 4 + 2, 9, 1, 14, "S");
+  // dividers sit in the 1px gutter between glyphs, not through them
+  for (let i = 0; i < 5; i++) g.rect(7 + i * 4, 9, 1, 14, "S");
   g.outline("K");
-  return { palette: { K: "#0a0d18", D: "#0d1a10", G: "#39ff14", S: "#2b3550" }, rows: g.rows() };
+  return { palette: { K: "#0a0d18", D: "#141008", A: "#ffb000", S: "#2b3550" }, rows: g.rows() };
+}
+
+// --- 1994 DIAL-UP ----------------------------------------------------------
+
+// External 56k modem: beige box, status LEDs, curly phone cord.
+function modem() {
+  const g = new G(32, 32);
+  g.rrect(1, 11, 30, 14, 2, "T");
+  g.rect(2, 12, 28, 2, "S");                 // top highlight
+  g.rect(3, 21, 12, 2, "D");                 // brand strip
+  // LED row — modems blinked amber and red, never green
+  ["A", "R", "A", "A", "R"].forEach((c, i) => g.rect(4 + i * 5, 16, 3, 3, c));
+  // curly cord out of the back
+  for (let i = 0; i <= 22; i++) {
+    const t = i / 22;
+    g.set(24 + Math.sin(t * 9) * 3 + t * 5, 11 - t * 9, "D");
+  }
+  g.outline("K");
+  return { palette: { K: "#0a0d18", T: "#d8c9a0", S: "#f0e6c8", D: "#8b8fa8", A: "#ffb000", R: "#ff3355" }, rows: g.rows() };
+}
+
+// The handset lifted mid-download. Sound arcs so it reads as ringing.
+function phone() {
+  const g = new G(32, 32);
+  const bx = 4, by = 24, ex = 20, ey = 8;
+  g.line(bx, by, ex, ey, 4.6, "D");          // handle
+  g.disc(bx, by, 5, "D");                    // earpiece
+  g.disc(ex, ey, 5, "D");                    // mouthpiece
+  g.disc(bx, by, 2.4, "M");
+  g.disc(ex, ey, 2.4, "M");
+  // ring arcs off the mouthpiece
+  for (let i = 1; i <= 3; i++) {
+    for (let a = -50; a <= 30; a += 3) {
+      const r = a * Math.PI / 180;
+      g.set(ex + Math.cos(r) * (5 + i * 3), ey + Math.sin(r) * (5 + i * 3), "R");
+    }
+  }
+  g.outline("K");
+  return { palette: { K: "#0a0d18", D: "#39405c", M: "#8b8fa8", R: "#ff3355" }, rows: g.rows() };
+}
+
+// Open guestbook with a quill: sign it, or else.
+function guestbook() {
+  const g = new G(32, 32);
+  g.poly([[1, 9], [15, 6], [15, 27], [1, 25]], "W");     // left page
+  g.poly([[17, 6], [31, 9], [31, 25], [17, 27]], "W");   // right page
+  g.rect(15, 6, 2, 22, "D");                             // spine
+  for (let i = 0; i < 4; i++) {
+    g.rect(3, 11 + i * 4, 10, 1, "D");
+    g.rect(19, 11 + i * 4, 10, 1, "D");
+  }
+  g.line(21, 22, 29, 3, 1.8, "Y");                       // quill
+  g.poly([[28, 2], [31, 5], [29, 7]], "S");              // feather
+  g.outline("K");
+  return { palette: { K: "#0a0d18", W: "#e8ecff", D: "#8b8fa8", Y: "#ffcc33", S: "#ffffff" }, rows: g.rows() };
+}
+
+// Ask Jeeves: the butler. Bald dome, bow tie, moustache.
+function jeeves() {
+  const g = new G(32, 32);
+  g.poly([[3, 31], [10, 22], [22, 22], [29, 31]], "W");  // shoulders
+  g.poly([[13, 22], [19, 22], [16, 28]], "K");           // lapel V
+  g.poly([[12, 24], [16, 26], [20, 24], [20, 28], [16, 26], [12, 28]], "R");  // bow tie
+  g.disc(16, 13, 8.5, "F");                              // head
+  g.disc(9, 13, 2.6, "D"); g.disc(23, 13, 2.6, "D");     // side hair
+  g.disc(13, 11, 1.4, "K"); g.disc(19, 11, 1.4, "K");    // eyes
+  g.rect(12, 16, 9, 2, "D");                             // moustache
+  g.outline("K");
+  return { palette: { K: "#0a0d18", W: "#e8ecff", F: "#e8b58a", D: "#5a5f78", R: "#ff3355" }, rows: g.rows() };
+}
+
+// After Dark's flying toaster, wings and all.
+function toaster() {
+  const g = new G(32, 32);
+  // Two wings, spread symmetrically. One wing plus a box reads as neither a
+  // toaster nor a bird; the pair is what makes the joke land instantly.
+  for (const s of [-1, 1]) {
+    const ox = 16 + s * 7;
+    for (let f = 0; f < 3; f++) {
+      g.poly([
+        [ox, 13 + f * 4], [ox + s * (11 - f * 2), 9 + f * 4],
+        [ox + s * (11 - f * 2), 12 + f * 4], [ox, 16 + f * 4]
+      ], "W");
+      g.line(ox, 15 + f * 4, ox + s * (10 - f * 2), 11.5 + f * 4, 1, "D");
+    }
+  }
+  g.rrect(12, 2, 9, 10, 2, "E");             // toast, mid-pop
+  g.rect(12, 2, 9, 2, "A");                  // crust
+  g.set(15, 7, "A"); g.set(18, 9, "A");
+  g.rrect(9, 11, 15, 16, 2, "S");            // chrome body
+  g.rect(10, 13, 12, 2, "W");                // highlight
+  g.rect(11, 11, 11, 2, "K");                // slot the toast came out of
+  g.rect(7, 15, 3, 4, "D");                  // lever, on the body's flank
+  g.disc(16, 22, 2.6, "D");                  // browning dial
+  g.disc(16, 22, 1, "S");
+  g.outline("K");
+  return { palette: { K: "#0a0d18", S: "#c9d4e6", W: "#ffffff", D: "#8b8fa8", E: "#b57a3a", A: "#ffb000" }, rows: g.rows() };
+}
+
+// --- 1997 MULTIMEDIA -------------------------------------------------------
+
+// The hourglass cursor, still going.
+function hourglass() {
+  const g = new G(32, 32);
+  g.rect(6, 3, 20, 3, "S");                  // caps
+  g.rect(6, 26, 20, 3, "S");
+  g.poly([[8, 6], [24, 6], [17, 16], [17, 17], [24, 26], [8, 26], [15, 17], [15, 16]], "W");
+  g.poly([[10, 8], [22, 8], [17, 15], [15, 15]], "B");   // sand, top
+  g.poly([[11, 25], [21, 25], [18, 21], [14, 21]], "B"); // sand, bottom
+  g.rect(15, 15, 2, 6, "B");                             // trickle
+  g.outline("K");
+  return { palette: { K: "#0a0d18", W: "#e8ecff", S: "#8b8fa8", B: "#2b6ef6" }, rows: g.rows() };
+}
+
+// The button every Flash site made you hunt for.
+function skipintro() {
+  const g = new G(32, 32);
+  g.rrect(1, 9, 30, 14, 1, "S");
+  g.rect(2, 10, 28, 1, "W");                 // bevel, lit edge
+  g.rect(2, 10, 1, 12, "W");
+  g.rect(2, 21, 28, 1, "D");                 // bevel, shadow edge
+  g.rect(29, 10, 1, 12, "D");
+  g.text("SKIP", 7, 13, "K", 1);
+  // cursor arrow, hovering over it
+  g.poly([[21, 16], [21, 28], [24, 25], [26, 30], [28, 29], [26, 24], [30, 24]], "W");
+  g.outline("K");
+  return { palette: { K: "#0a0d18", S: "#c9d4e6", W: "#ffffff", D: "#7a8299" }, rows: g.rows() };
+}
+
+// Tamagotchi, X-eyed. You forgot to feed it.
+function tamagotchi() {
+  const g = new G(32, 32);
+  g.disc(16, 17, 13, "P");                   // egg shell
+  g.rect(3, 17, 26, 10, "P");
+  g.disc(16, 22, 12, "P");
+  g.ring(16, 4, 3, 1.6, "D");                // key ring
+  g.rrect(7, 8, 18, 14, 2, "L");             // LCD
+  // dead pet: X eyes over a flat mouth
+  [[11, 12], [19, 12]].forEach(p => {
+    g.line(p[0] - 2, p[1] - 2, p[0] + 2, p[1] + 2, 1, "M");
+    g.line(p[0] + 2, p[1] - 2, p[0] - 2, p[1] + 2, 1, "M");
+  });
+  g.rect(12, 18, 8, 1, "M");
+  [10, 16, 22].forEach(x => g.disc(x, 26, 2.2, "D"));    // buttons
+  g.outline("K");
+  return { palette: { K: "#0a0d18", P: "#ff6fae", L: "#8ea87a", M: "#1a2414", D: "#c9d4e6" }, rows: g.rows() };
+}
+
+// The MIDI that starts playing the second the page loads.
+function midi() {
+  const g = new G(32, 32);
+  g.disc(9, 24, 5.4, "C");                   // note head
+  g.rect(12, 6, 2.4, 18, "C");               // stem
+  g.poly([[14, 6], [22, 10], [22, 16], [14, 12]], "C");  // flag
+  for (let i = 1; i <= 3; i++) {             // sound arcs
+    for (let a = -55; a <= 55; a += 4) {
+      const r = a * Math.PI / 180;
+      g.set(21 + Math.cos(r) * (i * 3.4), 12 + Math.sin(r) * (i * 3.4), "W");
+    }
+  }
+  g.outline("K");
+  return { palette: { K: "#0a0d18", C: "#54f2ff", W: "#e8ecff" }, rows: g.rows() };
+}
+
+// Hampster Dance. One of four frames, looping forever.
+function hamster() {
+  const g = new G(32, 32);
+  g.disc(7, 9, 4.4, "T"); g.disc(25, 9, 4.4, "T");       // ears
+  g.disc(7, 9, 2.2, "P"); g.disc(25, 9, 2.2, "P");
+  g.disc(16, 17, 10.5, "T");                             // head
+  g.disc(11, 22, 5, "W"); g.disc(21, 22, 5, "W");        // cheeks
+  g.disc(16, 20, 3.2, "W");
+  g.disc(16, 19, 1.8, "P");                              // nose
+  g.rect(15, 21, 2, 3, "D");                             // mouth
+  g.disc(11, 14, 2.4, "K"); g.disc(21, 14, 2.4, "K");    // eyes
+  g.set(10, 13, "W"); g.set(20, 13, "W");
+  g.disc(3, 24, 2.8, "T"); g.disc(29, 24, 2.8, "T");     // little arms, up
+  g.outline("K");
+  return { palette: { K: "#0a0d18", T: "#d8a860", W: "#f5e6c8", P: "#ff9fb8", D: "#8f6a33" }, rows: g.rows() };
+}
+
+// --- 1999 BROADBAND --------------------------------------------------------
+
+// Napster's cat: a dark head silhouette in headphones on a blue disc, which
+// is how the logo actually read. Drawn as a silhouette because a detailed
+// face turns to mud once it is 32px wide and moving.
+function napster() {
+  const g = new G(32, 32);
+  // Band goes down first so the ears and head paint over it — that overlap is
+  // what makes it read as headphones worn behind the ears rather than a hoop.
+  for (let a = 200; a <= 340; a += 2) {
+    const r = a * Math.PI / 180;
+    g.disc(16 + Math.cos(r) * 13, 20 + Math.sin(r) * 13, 1.8, "B");
+  }
+  g.poly([[6, 20], [8, 3], [17, 15]], "S");              // ears
+  g.poly([[26, 20], [24, 3], [15, 15]], "S");
+  g.poly([[9, 17], [10, 8], [15, 15]], "P");             // inner ears
+  g.poly([[23, 17], [22, 8], [17, 15]], "P");
+  g.disc(16, 20, 9, "S");                                // head
+  g.disc(12, 18, 2, "K"); g.disc(20, 18, 2, "K");        // eyes
+  g.set(11, 17, "W"); g.set(19, 17, "W");
+  g.poly([[14, 23], [18, 23], [16, 25]], "P");           // nose
+  g.rrect(1, 16, 7, 10, 2, "B");                         // ear cups
+  g.rrect(24, 16, 7, 10, 2, "B");
+  g.rect(3, 19, 3, 4, "D");
+  g.rect(26, 19, 3, 4, "D");
+  g.outline("K");
+  return { palette: { K: "#0a0d18", B: "#2b6ef6", S: "#c9d4e6", P: "#ff9fb8", W: "#ffffff", D: "#12245e" }, rows: g.rows() };
+}
+
+// Y2K on a beige CRT, with the crack it never actually caused.
+function y2k() {
+  const g = new G(32, 32);
+  g.rrect(1, 3, 30, 22, 2, "T");             // bezel
+  g.rect(3, 5, 26, 16, "K");                 // screen
+  g.text("Y2K", 5, 8, "R", 2);
+  for (let y = 6; y < 20; y += 3) g.rect(4, y, 24, 1, "L");  // scanlines
+  g.rect(12, 25, 8, 3, "T");                 // stand
+  g.rect(7, 28, 18, 3, "S");
+  g.outline("K");
+  return { palette: { K: "#0a0d18", T: "#d8c9a0", S: "#b5a880", R: "#ff3355", L: "#2a1418" }, rows: g.rows() };
+}
+
+// Bondi blue iMac G3. The one that dropped the floppy drive.
+function imac() {
+  const g = new G(32, 32);
+  g.rrect(3, 4, 26, 21, 6, "C");             // translucent shell
+  g.rrect(4, 24, 24, 5, 2, "C");             // chin
+  g.rect(6, 7, 20, 14, "L");                 // screen
+  g.rect(7, 8, 18, 3, "B");                  // phosphor glow
+  g.rrect(9, 26, 14, 2, 1, "S");             // slot
+  g.rect(12, 29, 8, 3, "S");                 // foot
+  g.rect(5, 5, 3, 2, "W");                   // highlight
+  g.outline("K");
+  return { palette: { K: "#0a0d18", C: "#3fb8c8", L: "#0e1a24", B: "#2b6ef6", S: "#c9d4e6", W: "#a8f4ff" }, rows: g.rows() };
+}
+
+// --- 2001 SPYWARE ----------------------------------------------------------
+
+// The purple gorilla nobody installed on purpose.
+function bonzi() {
+  const g = new G(32, 32);
+  g.disc(4, 12, 4, "P"); g.disc(28, 12, 4, "P");         // ears
+  g.disc(4, 12, 2, "V"); g.disc(28, 12, 2, "V");
+  g.disc(16, 14, 10.5, "P");                             // head
+  g.disc(16, 21, 7.5, "V");                              // muzzle
+  g.disc(11, 11, 3.2, "W"); g.disc(21, 11, 3.2, "W");    // eyes
+  g.disc(11.6, 11.4, 1.5, "K"); g.disc(21.6, 11.4, 1.5, "K");
+  g.rect(8, 7, 6, 2, "D"); g.rect(19, 7, 6, 2, "D");     // brow
+  g.disc(14, 18, 1.2, "K"); g.disc(19, 18, 1.2, "K");    // nostrils
+  g.poly([[10, 22], [22, 22], [19, 27], [13, 27]], "K"); // grin
+  g.rect(11, 22, 10, 2, "W");                            // teeth
+  g.outline("K");
+  return { palette: { K: "#0a0d18", P: "#9b5de5", V: "#c9a0ff", W: "#ffffff", D: "#5a2a8f" }, rows: g.rows() };
+}
+
+// A browser that is 80% toolbar and 20% web.
+function toolbars() {
+  const g = new G(32, 32);
+  g.rrect(0, 2, 32, 28, 1, "S");
+  g.rect(1, 3, 30, 4, "B");                  // title bar
+  g.rect(27, 4, 3, 2, "R");
+  for (let i = 0; i < 6; i++) {              // six stacked toolbars
+    const y = 8 + i * 3;
+    g.rect(1, y, 30, 3, i % 2 ? "D" : "S");
+    for (let b = 0; b < 5; b++) g.rect(2 + b * 6, y + 1, 3, 1, i % 2 ? "W" : "M");
+  }
+  g.rect(1, 26, 30, 3, "W");                 // what's left of the page
+  g.rect(3, 27, 12, 1, "D");
+  g.outline("K");
+  return { palette: { K: "#0a0d18", S: "#c9d4e6", D: "#7a8299", W: "#e8ecff", M: "#5a5f78", B: "#2b6ef6", R: "#ff3355" }, rows: g.rows() };
+}
+
+// LOVE-LETTER-FOR-YOU.TXT.vbs
+function iloveyou() {
+  const g = new G(32, 32);
+  g.rect(1, 7, 30, 19, "W");                 // envelope
+  g.poly([[1, 7], [31, 7], [16, 19]], "S");  // flap
+  g.line(1, 26, 12, 16, 1, "D");
+  g.line(31, 26, 20, 16, 1, "D");
+  g.disc(12, 20, 4.2, "R");                  // heart
+  g.disc(20, 20, 4.2, "R");
+  g.poly([[8, 21], [24, 21], [16, 30]], "R");
+  g.outline("K");
+  return { palette: { K: "#0a0d18", W: "#e8ecff", S: "#c9d4e6", D: "#8b8fa8", R: "#ff3355" }, rows: g.rows() };
+}
+
+// The Pets.com sock puppet, still holding the mic. Drawn face-on: the brown
+// ears and the mic under the chin are what make it read, so they get the room.
+function sockpuppet() {
+  const g = new G(32, 32);
+  g.poly([[3, 3], [11, 8], [9, 23], [1, 16]], "E");      // floppy ears
+  g.poly([[27, 3], [30, 16], [22, 23], [20, 8]], "E");
+  g.disc(15, 13, 9.5, "W");                              // sock head
+  g.rect(6, 13, 19, 9, "W");
+  g.disc(15, 21, 8, "W");                                // muzzle
+  g.disc(11, 10, 2.6, "K");                              // eyes
+  g.disc(19, 10, 2.6, "K");
+  g.set(10, 9, "W"); g.set(18, 9, "W");                  // glints
+  g.disc(15, 19, 2.8, "K");                              // nose
+  g.rect(14, 21, 2, 4, "D");                             // mouth
+  g.line(11, 25, 19, 25, 1.6, "D");
+  g.line(22, 31, 25, 26, 2.4, "M");                      // mic on its stick
+  g.disc(26, 24, 3.4, "S");
+  g.disc(26, 24, 1.6, "M");
+  g.outline("K");
+  return { palette: { K: "#0a0d18", W: "#f0f2ff", E: "#a06a3a", S: "#8b8fa8", D: "#5a5f78", M: "#39405c" }, rows: g.rows() };
+}
+
+// --- sludge ----------------------------------------------------------------
+
+// A frameset inside a frameset. Scrollbars all the way down.
+function frames() {
+  const g = new G(92, 60);
+  // every pane: border, title strip, ruled text, scrollbar down the right
+  function pane(x, y, w, h) {
+    g.rect(x, y, w, h, "K");
+    g.rect(x + 1, y + 1, w - 2, h - 2, "W");
+    g.rect(x + 1, y + 1, w - 2, 3, "B");
+    g.rect(x + w - 5, y + 4, 4, h - 5, "S");            // scrollbar trough
+    g.rect(x + w - 5, y + 5, 4, 5, "D");                // thumb
+    for (let i = 0; i * 4 + 8 < h; i++) {
+      g.rect(x + 3, y + 7 + i * 4, w - 11 - (i % 3) * 4, 1, "D");
+    }
+  }
+  pane(0, 0, 34, 60);
+  pane(34, 0, 58, 22);
+  pane(34, 22, 30, 38);
+  pane(64, 22, 28, 20);
+  pane(64, 42, 28, 18);
+  return { palette: { K: "#0a0d18", W: "#e8ecff", S: "#c9d4e6", D: "#8b8fa8", B: "#2b6ef6" }, rows: g.rows() };
 }
 
 // -------------------------------------------------------------- powerups ---
@@ -540,31 +862,74 @@ function portal() {
 }
 
 // ---------------------------------------------------------------- chaser ---
-function cookie() {
-  const g = new G(40, 40);
-  // virus spikes
-  for (let i = 0; i < 10; i++) {
-    const a = i * Math.PI * 2 / 10 + 0.3;
-    const x0 = 20 + Math.cos(a) * 15, y0 = 20 + Math.sin(a) * 15;
-    const x1 = 20 + Math.cos(a) * 19, y1 = 20 + Math.sin(a) * 19;
-    g.line(x0, y0, x1, y1, 2, "V");
-    g.disc(x1, y1, 1.8, "V");
+// Clippy, at 40x40 and no longer trying to help. Same nested-U wire as the
+// old hazard sprite, scaled up — the read comes from the face: heavy angry
+// brows, blown-wide eyes and red pupils. Drawn last so the wire cuts below
+// can't erase them.
+// Clippy, the chaser. 64x64 — twice the player and the only sprite in the game
+// off the 32px grid, because he has to read as a specific character rather
+// than a category, and that needs detail the others don't.
+//
+// The proportions are the whole trick. A paperclip is roughly 1:2.5, narrow
+// and tall; drawn wide it stops being a paperclip and becomes an owl, which is
+// exactly what the first pass at 40px did. The eyes are deliberately wider
+// than the wire and sit over the top bend — that overhang is the single most
+// recognisable thing about him. Brows float free above, bent wire, angled
+// down toward the middle for the menace.
+function clippy() {
+  const g = new G(64, 64);
+  const T = 4;                               // wire gauge
+  // Screen coords, so +90deg is down and -90deg is up.
+  const arc = (cx, cy, r, a0, a1) => {
+    const steps = Math.ceil(Math.abs(a1 - a0) * r / 40) + 10;
+    for (let i = 0; i <= steps; i++) {
+      const a = (a0 + (a1 - a0) * i / steps) * Math.PI / 180;
+      g.disc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, T / 2, "M");
+    }
+  };
+  // One continuous wire folded the way a real paperclip is: down the outside,
+  // round the bottom, up the far side, over the top, back down inside, round
+  // the small bottom loop and up to the free end. Folding it properly is what
+  // stops it being two symmetric arches — the offset top loop is the whole
+  // difference between "paperclip" and "owl".
+  g.line(16, 18, 16, 40, T, "M");            // outer left leg
+  arc(30, 40, 14, 180, 0);                   // outer bottom, through the base
+  g.line(44, 40, 44, 14, T, "M");            // outer right leg
+  arc(36, 14, 8, 0, -180);                   // top loop, offset right
+  g.line(28, 14, 28, 36, T, "M");            // back down inside
+  arc(33, 36, 5, 180, 0);                    // small inner bottom loop
+  g.line(38, 36, 38, 22, T, "M");            // free end
+  // Eyes are tall ovals, not circles, and both pupils cut to the same side in
+  // a sidelong glance. Two symmetric circles staring straight out is an owl no
+  // matter what you hang underneath them; breaking the symmetry is what makes
+  // this read as a thing wearing eyes rather than a face.
+  const eye = (cx, cy, rx, ry, c) => {
+    for (let y = Math.floor(cy - ry); y <= cy + ry; y++)
+      for (let x = Math.floor(cx - rx); x <= cx + rx; x++) {
+        const dx = (x - cx) / rx, dy = (y - cy) / ry;
+        if (dx * dx + dy * dy <= 1) g.set(x, y, c);
+      }
+  };
+  eye(23, 18, 7.5, 9, "W"); eye(41, 18, 7.5, 9, "W");
+  g.disc(20.5, 20, 3.8, "K"); g.disc(38.5, 20, 3.8, "K");
+  g.set(19, 18, "W"); g.set(37, 18, "W");    // catchlights
+
+  // Re-lay the outer wire over the eyes so it crosses in front of them: the
+  // clip is the object and the eyes are stuck to it, not the other way round.
+  g.line(16, 18, 16, 40, T, "M");
+  arc(36, 14, 8, 0, -180);
+  g.line(44, 14, 44, 26, T, "M");
+
+  // shade the left of the wire so it reads as round rather than flat
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
+    if (g.get(x, y) === "M" && g.get(x - 1, y) === ".") g.set(x, y, "D");
   }
-  g.disc(20, 20, 16, "T");            // cookie
-  g.ring(20, 20, 16, 2, "D");
-  // chips
-  [[11, 12], [28, 11], [9, 24], [30, 25], [20, 31], [24, 18]].forEach(p => g.disc(p[0], p[1], 2.4, "M"));
-  // eyes
-  g.disc(14, 16, 4.4, "W"); g.disc(26, 16, 4.4, "W");
-  g.disc(14.8, 16.6, 2.2, "R"); g.disc(26.8, 16.6, 2.2, "R");
-  g.disc(15.2, 17, 1, "K"); g.disc(27.2, 17, 1, "K");
-  // fanged mouth
-  g.poly([[11, 25], [29, 25], [27, 31], [23, 27], [20, 32], [17, 27], [13, 31]], "K");
-  g.poly([[13, 25], [16, 25], [15, 28]], "W");
-  g.poly([[19, 25], [22, 25], [20.5, 29]], "W");
-  g.poly([[25, 25], [28, 25], [26, 28]], "W");
+  // Brows: thin, short, and kept inside the eyes' own width. Sweep them up and
+  // outward instead and they stop being brows and become ear tufts.
+  g.line(18, 5, 28, 9, 2.5, "M");
+  g.line(46, 5, 36, 9, 2.5, "M");
   g.outline("K");
-  return { palette: { K: "#0a0d18", T: "#d9963f", D: "#8c5a1c", M: "#4a2a10", W: "#ffffff", R: "#ff3355", V: "#b07cff" }, rows: g.rows() };
+  return { palette: { K: "#0a0d18", M: "#c9d4e6", D: "#7a8299", W: "#ffffff" }, rows: g.rows() };
 }
 
 // ------------------------------------------------------------- mini icons ---
@@ -592,25 +957,39 @@ const SPRITES = {
   ...POSES,
   // hazards: small, dead services and software — these cost you a life
   netscape: netscape(), aol: aol(), icq: icq(), winamp: winamp(),
-  notfound: notfound(), clippy: clippy(), msn: msn(), ie: ie(),
+  notfound: notfound(), msn: msn(), ie: ie(),
   bsod: bsod(), java: java(), hitcounter: hitcounter(),
+  modem: modem(), phone: phone(), guestbook: guestbook(), jeeves: jeeves(),
+  toaster: toaster(), hourglass: hourglass(), skipintro: skipintro(),
+  tamagotchi: tamagotchi(), midi: midi(), hamster: hamster(),
+  napster: napster(), y2k: y2k(), imac: imac(), bonzi: bonzi(),
+  toolbars: toolbars(), iloveyou: iloveyou(), sockpuppet: sockpuppet(),
   // sludge: big, harmless, and it kills your speed
   popupstorm: popupstorm(), glitch: glitch(), construction: construction(),
+  frames: frames(),
   // pickups + chaser
   norton: norton(), bolt: bolt(), floppy: floppy(), portal: portal(),
-  link: link(), cookie: cookie(), life: miniFloppy()
+  link: link(), clippy: clippy(), life: miniFloppy()
 };
 
 const LABELS = {
   netscape: "NETSCAPE CRASH", aol: "AOL FREE TRIAL", icq: "UH OH!",
   winamp: "IT WHIPS THE LLAMA", notfound: "404 NOT FOUND",
-  clippy: "IT LOOKS LIKE A CRASH", msn: "MSN MESSENGER",
+ msn: "MSN MESSENGER",
   ie: "INTERNET EXPLORER", bsod: "BLUE SCREEN", java: "JAVA APPLET",
   hitcounter: "YOU ARE VISITOR 4201",
+  modem: "NO CARRIER", phone: "MOM PICKED UP THE PHONE",
+  guestbook: "SIGN MY GUESTBOOK", jeeves: "ASK JEEVES",
+  toaster: "FLYING TOASTERS", hourglass: "STILL LOADING",
+  skipintro: "SKIP INTRO", tamagotchi: "IT DIED",
+  midi: "AUTOPLAYING MIDI", hamster: "HAMPSTER DANCE",
+  napster: "SHARING IS CARING", y2k: "Y2K BUG", imac: "BONDI BLUE",
+  bonzi: "BONZI BUDDY", toolbars: "SIX TOOLBARS", iloveyou: "ILOVEYOU",
+  sockpuppet: "PETS.COM",
   popupstorm: "POPUP STORM", glitch: "SIGNAL CORRUPTED",
-  construction: "UNDER CONSTRUCTION",
+  construction: "UNDER CONSTRUCTION", frames: "NESTED FRAMESET",
   norton: "NORTON SHIELD", bolt: "BROADBAND", floppy: "SAVED",
-  portal: "HYPERLINK JUMP", cookie: "COOKIEMONSTER"
+  portal: "HYPERLINK JUMP", clippy: "CLIPPY"
 };
 
 let out = "  var SPRITES = {\n";

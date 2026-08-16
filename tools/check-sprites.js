@@ -30,7 +30,35 @@ while ((m = blockRe.exec(src)) !== null) {
   if (palRaw) {
     for (const p of palRaw[1].matchAll(/(\w+):/g)) palette.add(p[1]);
   }
-  sprites[name] = { rows, palette, hasLabel: /label:/.test(body) };
+  const colours = palRaw ? [...palRaw[1].matchAll(/"(#[0-9a-fA-F]{6})"/g)].map((c) => c[1]) : [];
+  sprites[name] = { rows, palette, colours, hasLabel: /label:/.test(body) };
+}
+
+// --- the pickup green is reserved --------------------------------------
+// Anything drawn in a bright green reads as "grab me" at speed, whatever
+// shape it is. Only pickups may use the band; a hazard that wants green has
+// to go dark (ICQ's offline red, Winamp's dim analyser base) or pick another
+// hue. Hue 80-160 at decent saturation and mid lightness — wide enough to
+// catch a near-miss like #3ddc4a, narrow enough to leave cyan and olive be.
+function hsl(h) {
+  const r = parseInt(h.slice(1, 3), 16) / 255;
+  const g = parseInt(h.slice(3, 5), 16) / 255;
+  const b = parseInt(h.slice(5, 7), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  const l = (max + min) / 2;
+  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+  let hue = 0;
+  if (d !== 0) {
+    if (max === r) hue = 60 * (((g - b) / d) % 6);
+    else if (max === g) hue = 60 * ((b - r) / d + 2);
+    else hue = 60 * ((r - g) / d + 4);
+  }
+  return { h: (hue + 360) % 360, s, l };
+}
+
+function isReservedGreen(hex) {
+  const c = hsl(hex);
+  return c.h >= 80 && c.h <= 160 && c.s >= 0.5 && c.l >= 0.34 && c.l <= 0.78;
 }
 
 const names = Object.keys(sprites);
@@ -69,7 +97,7 @@ const zoneKeys = new Set([
 const poseKeys = refs(/var POSE = \[([\s\S]*?)\]/g);
 const tuckKeys = refs(/var TUCK = \[([\s\S]*?)\]/g);
 const powerKeys = new Set([...src.matchAll(/\{ key: "(\w+)", kind:/g)].map((h) => h[1]));
-const extraKeys = new Set(["cookie", "life", "link"]);
+const extraKeys = new Set(["clippy", "life", "link"]);
 
 for (const [label, keys] of [["zone pool", zoneKeys], ["POSE", poseKeys],
   ["TUCK", tuckKeys], ["POWERUPS", powerKeys]]) {
@@ -95,6 +123,17 @@ for (const name of names) {
 // hazards and sludge surface their label in a toast when you hit them
 for (const k of zoneKeys) {
   if (sprites[k] && !sprites[k].hasLabel) warnings.push(`${k} has no label — its toast will be blank`);
+}
+
+// nothing that can hurt you may wear the pickup's green
+for (const k of zoneKeys) {
+  if (!sprites[k]) continue;
+  for (const c of sprites[k].colours) {
+    if (isReservedGreen(c)) {
+      errors.push(`${k} uses ${c}, which is inside the reserved pickup green — ` +
+        "hazards and sludge in that band read as things to collect");
+    }
+  }
 }
 
 // --- report ---------------------------------------------------------------
