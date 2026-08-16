@@ -360,7 +360,7 @@ Pushing to `main` runs `.gitlab-ci.yml`, which validates and then rsyncs
 is one self-contained script that injects its own CSS.
 
 Auth comes from `DREAMHOST_SSH_KEY`, `DREAMHOST_HOST` and `DREAMHOST_USERNAME`,
-inherited from the `greykit-games` group. They're *protected* variables, so
+inherited from the `greykit-app` group. They're *protected* variables, so
 they only reach pipelines on protected branches; `main` is protected here. If a
 deploy fails at the `ssh` step with empty variables, that's the thing to check.
 

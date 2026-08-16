@@ -2,7 +2,7 @@
 #
 # Single rsync job over SSH to DreamHost, mirroring the sibling games
 # (pumaclicker, hackermap). Auth comes from CI/CD variables inherited from
-# the greykit-games GitLab group:
+# the greykit-app GitLab group:
 #
 #   DREAMHOST_SSH_KEY    File-type CI variable holding the private SSH key
 #   DREAMHOST_HOST       DreamHost SSH host
