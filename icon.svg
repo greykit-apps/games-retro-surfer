@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel art on a 16x16 grid at 4px a cell, to match a game that draws
+       every sprite in code and ships no image assets. A breaking wave: 90s
+       web surfing, and the only thing in the set that is literally a surf. -->
+  <defs><clipPath id="plate"><rect width="64" height="64" rx="12"/></clipPath></defs>
+  <rect width="64" height="64" rx="12" fill="#0a0d18"/>
+  <g clip-path="url(#plate)" shape-rendering="crispEdges">
+    <rect x="36" y="8" width="16" height="4" fill="#e8ecff"/>
+    <rect x="28" y="12" width="8" height="4" fill="#e8ecff"/>
+    <rect x="36" y="12" width="16" height="4" fill="#54f2ff"/>
+    <rect x="52" y="12" width="4" height="4" fill="#e8ecff"/>
+    <rect x="24" y="16" width="4" height="4" fill="#e8ecff"/>
+    <rect x="28" y="16" width="8" height="4" fill="#54f2ff"/>
+    <rect x="52" y="16" width="4" height="4" fill="#54f2ff"/>
+    <rect x="56" y="16" width="4" height="4" fill="#e8ecff"/>
+    <rect x="20" y="20" width="4" height="4" fill="#e8ecff"/>
+    <rect x="24" y="20" width="4" height="4" fill="#54f2ff"/>
+    <rect x="28" y="20" width="4" height="4" fill="#3aa0ff"/>
+    <rect x="56" y="20" width="4" height="4" fill="#54f2ff"/>
+    <rect x="16" y="24" width="4" height="4" fill="#e8ecff"/>
+    <rect x="20" y="24" width="4" height="4" fill="#54f2ff"/>
+    <rect x="24" y="24" width="4" height="4" fill="#3aa0ff"/>
+    <rect x="48" y="24" width="4" height="4" fill="#3aa0ff"/>
+    <rect x="52" y="24" width="4" height="4" fill="#54f2ff"/>
+    <rect x="12" y="28" width="4" height="4" fill="#e8ecff"/>
+    <rect x="16" y="28" width="4" height="4" fill="#54f2ff"/>
+    <rect x="20" y="28" width="4" height="4" fill="#3aa0ff"/>
+    <rect x="40" y="28" width="12" height="4" fill="#3aa0ff"/>
+    <rect x="8" y="32" width="4" height="4" fill="#e8ecff"/>
+    <rect x="12" y="32" width="4" height="4" fill="#54f2ff"/>
+    <rect x="16" y="32" width="28" height="4" fill="#3aa0ff"/>
+    <rect x="8" y="36" width="4" height="4" fill="#54f2ff"/>
+    <rect x="12" y="36" width="28" height="4" fill="#3aa0ff"/>
+    <rect x="4" y="40" width="32" height="4" fill="#3aa0ff"/>
+    <rect x="0" y="44" width="64" height="4" fill="#3aa0ff"/>
+    <rect x="0" y="48" width="64" height="4" fill="#3aa0ff"/>
+    <rect x="0" y="52" width="64" height="4" fill="#3aa0ff"/>
+  </g>
+</svg>

@@ -61,7 +61,10 @@ deploy:
     # the two runtime files. Apache serves index.html for the bare directory,
     # so both /games/retrosurfer96/ and /games/retrosurfer96/index.html resolve.
     - ssh ${DREAMHOST_USERNAME}@${DREAMHOST_HOST} "mkdir -p /home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/"
-    - rsync -avz --chmod=F644 index.html retro-surfer.js version.json ${DREAMHOST_USERNAME}@${DREAMHOST_HOST}:/home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/
+    # icon.svg / apple-touch-icon.png are referenced from the <head>; this job
+    # ships an explicit list, so leaving them out means the links 404 while the
+    # pipeline still goes green.
+    - rsync -avz --chmod=F644 index.html retro-surfer.js version.json icon.svg apple-touch-icon.png ${DREAMHOST_USERNAME}@${DREAMHOST_HOST}:/home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/
   environment:
     name: production
     url: https://greykit.com/games/retrosurfer96/
