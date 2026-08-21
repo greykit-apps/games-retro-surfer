@@ -66,6 +66,24 @@ deploy:
     # rsync's own ssh picks it up too, without touching any rsync invocation.
     - printf 'Host *\n  ConnectTimeout 15\n  BatchMode yes\n' > ~/.ssh/config
     - chmod 600 ~/.ssh/config
+    # Outbound port 22 to this host gets blackholed for minutes once too many
+    # SSH connections go to it in a short window -- a mass deploy trips it even
+    # with no ssh-keyscan anywhere. Retry with long gaps so a queued deploy rides
+    # the block out instead of going red. The gaps are deliberately long: probing
+    # harder re-arms the block rather than clearing it.
+    - |
+      puma_rsync() {
+        attempt=1
+        until rsync "$@"; do
+          if [ "$attempt" -ge 3 ]; then
+            echo "rsync failed after $attempt attempts" >&2
+            return 1
+          fi
+          echo "attempt $attempt failed; waiting 200s for any port-22 block to clear"
+          attempt=$((attempt + 1))
+          sleep 200
+        done
+      }
   script:
     # §42 — emit a version.json fingerprint of the deployed bytes.
     - SHA=${CI_COMMIT_SHORT_SHA}
@@ -75,11 +93,10 @@ deploy:
     # Ensure the subdirectory exists (first deploy creates the leaf), then ship
     # the two runtime files. Apache serves index.html for the bare directory,
     # so both /games/retrosurfer96/ and /games/retrosurfer96/index.html resolve.
-    - ssh ${DREAMHOST_USERNAME}@${DREAMHOST_HOST} "mkdir -p /home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/"
     # icon.svg / apple-touch-icon.png are referenced from the <head>; this job
     # ships an explicit list, so leaving them out means the links 404 while the
     # pipeline still goes green.
-    - rsync -avz --chmod=F644 index.html retro-surfer.js version.json icon.svg apple-touch-icon.png ${DREAMHOST_USERNAME}@${DREAMHOST_HOST}:/home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/
+    - puma_rsync --rsync-path="mkdir -p '/home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/' && rsync" -avz --chmod=F644 index.html retro-surfer.js version.json icon.svg apple-touch-icon.png ${DREAMHOST_USERNAME}@${DREAMHOST_HOST}:/home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/
   environment:
     name: production
     url: https://greykit.com/games/retrosurfer96/
