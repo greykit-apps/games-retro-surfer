@@ -50,7 +50,22 @@ deploy:
     - cp "$DREAMHOST_SSH_KEY" ~/.ssh/id_rsa
     - echo "" >> ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
-    - ssh-keyscan -H "$DREAMHOST_HOST" >> ~/.ssh/known_hosts
+    # Host key is PINNED rather than scanned. A bare `ssh-keyscan` opens a burst
+    # of parallel connections (one per host-key type), which trips an SSH-scan
+    # detector on the self-hosted runner's network path; outbound port 22 to the
+    # target is then blackholed for ~3 minutes -- long enough for the rsync below
+    # to time out, which is what makes the job die with exit 255 after 133s.
+    # Pinning costs zero connections and is also strictly safer than trusting
+    # whatever key happens to answer at deploy time.
+    # If DreamHost rebuilds the VPS this must be re-pinned: the job will then
+    # fail loudly on a host key mismatch rather than silently trust a new key.
+    - echo "$DREAMHOST_HOST ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEtxw582rJAeTpXMTRJeGJ6GHis19hHmWWBwEL1bCbYd" > ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+    # ConnectTimeout turns a blocked port into a 15s failure instead of a 133s
+    # one. It lives in ssh_config rather than on each command line so that
+    # rsync's own ssh picks it up too, without touching any rsync invocation.
+    - printf 'Host *\n  ConnectTimeout 15\n  BatchMode yes\n' > ~/.ssh/config
+    - chmod 600 ~/.ssh/config
   script:
     # §42 — emit a version.json fingerprint of the deployed bytes.
     - SHA=${CI_COMMIT_SHORT_SHA}
