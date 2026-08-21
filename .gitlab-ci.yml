@@ -50,7 +50,40 @@ deploy:
     - cp "$DREAMHOST_SSH_KEY" ~/.ssh/id_rsa
     - echo "" >> ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
-    - ssh-keyscan -H "$DREAMHOST_HOST" >> ~/.ssh/known_hosts
+    # Host key is PINNED rather than scanned. A bare `ssh-keyscan` opens a burst
+    # of parallel connections (one per host-key type), which trips an SSH-scan
+    # detector on the self-hosted runner's network path; outbound port 22 to the
+    # target is then blackholed for ~3 minutes -- long enough for the rsync below
+    # to time out, which is what makes the job die with exit 255 after 133s.
+    # Pinning costs zero connections and is also strictly safer than trusting
+    # whatever key happens to answer at deploy time.
+    # If DreamHost rebuilds the VPS this must be re-pinned: the job will then
+    # fail loudly on a host key mismatch rather than silently trust a new key.
+    - echo "$DREAMHOST_HOST ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEtxw582rJAeTpXMTRJeGJ6GHis19hHmWWBwEL1bCbYd" > ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+    # ConnectTimeout turns a blocked port into a 15s failure instead of a 133s
+    # one. It lives in ssh_config rather than on each command line so that
+    # rsync's own ssh picks it up too, without touching any rsync invocation.
+    - printf 'Host *\n  ConnectTimeout 15\n  BatchMode yes\n' > ~/.ssh/config
+    - chmod 600 ~/.ssh/config
+    # Outbound port 22 to this host gets blackholed for minutes once too many
+    # SSH connections go to it in a short window -- a mass deploy trips it even
+    # with no ssh-keyscan anywhere. Retry with long gaps so a queued deploy rides
+    # the block out instead of going red. The gaps are deliberately long: probing
+    # harder re-arms the block rather than clearing it.
+    - |
+      puma_rsync() {
+        attempt=1
+        until rsync "$@"; do
+          if [ "$attempt" -ge 3 ]; then
+            echo "rsync failed after $attempt attempts" >&2
+            return 1
+          fi
+          echo "attempt $attempt failed; waiting 200s for any port-22 block to clear"
+          attempt=$((attempt + 1))
+          sleep 200
+        done
+      }
   script:
     # §42 — emit a version.json fingerprint of the deployed bytes.
     - SHA=${CI_COMMIT_SHORT_SHA}
@@ -60,11 +93,10 @@ deploy:
     # Ensure the subdirectory exists (first deploy creates the leaf), then ship
     # the two runtime files. Apache serves index.html for the bare directory,
     # so both /games/retrosurfer96/ and /games/retrosurfer96/index.html resolve.
-    - ssh ${DREAMHOST_USERNAME}@${DREAMHOST_HOST} "mkdir -p /home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/"
     # icon.svg / apple-touch-icon.png are referenced from the <head>; this job
     # ships an explicit list, so leaving them out means the links 404 while the
     # pipeline still goes green.
-    - rsync -avz --chmod=F644 index.html retro-surfer.js version.json icon.svg apple-touch-icon.png ${DREAMHOST_USERNAME}@${DREAMHOST_HOST}:/home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/
+    - puma_rsync --rsync-path="mkdir -p '/home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/' && rsync" -avz --chmod=F644 index.html retro-surfer.js version.json icon.svg apple-touch-icon.png ${DREAMHOST_USERNAME}@${DREAMHOST_HOST}:/home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/
   environment:
     name: production
     url: https://greykit.com/games/retrosurfer96/
