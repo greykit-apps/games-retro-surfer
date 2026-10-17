@@ -2591,7 +2591,11 @@
 
     var ctx = canvas.getContext("2d");
     ctx.imageSmoothingEnabled = false;
-    var beep = makeBeeper();
+    // Sound can be switched off by the page around the game (the standalone
+    // page's Settings and M); the Konami overlay never asks, so it beeps.
+    var muted = !!options.muted;
+    var rawBeep = makeBeeper();
+    function beep(freq, dur, type, vol) { if (!muted) rawBeep(freq, dur, type, vol); }
 
     // --- state ------------------------------------------------------
     var keys = Object.create(null);
@@ -3575,6 +3579,10 @@
     return {
       element: wrap,
       focus: function () { wrap.focus(); },
+      // straight into a run, past the canvas's own title (the standalone page
+      // has a title of its own)
+      start: function () { start(); wrap.focus(); },
+      setMuted: function (m) { muted = !!m; },
       destroy: function () {
         running = false;
         cancelAnimationFrame(rafId);
@@ -3648,9 +3656,19 @@
     return function () { document.removeEventListener("keydown", onKey); };
   }
 
+  // The drawing kit, for a page that wants the game's own art around it
+  // (the standalone page's title backdrop and wordmark). Kept out of the
+  // literal below: tools/check-sprites.js reads any 4-space `name: {` block
+  // in this file as a sprite.
+  var ART = {
+    W: W, H: H, GOOD: GOOD, ZONES: ZONES,
+    drawSprite: drawSprite, drawPickup: drawPickup,
+    drawText: drawText, textWidth: textWidth
+  };
+
   var RetroSurfer = {
     mount: mount, open: open, konami: konami,
-    sprites: SPRITES, VERSION: "2.0.0"
+    sprites: SPRITES, art: ART, VERSION: "2.1.0"
   };
 
   if (typeof module === "object" && module.exports) module.exports = RetroSurfer;

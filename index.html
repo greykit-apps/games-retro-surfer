@@ -8,44 +8,45 @@
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="description" content="Ride the information superhighway. A pixel-art web-surfing game — carve past dead 90s services and outrun Clippy.">
+<meta name="theme-color" content="#05070f">
 <meta name="color-scheme" content="dark">
-<style>
-  body {
-    margin: 0; min-height: 100dvh; display: grid; place-items: center;
-    gap: 18px; padding: 28px 16px;
-    background: #05070f; color: #8b8fa8;
-    font: 14px/1.6 ui-monospace, Menlo, Consolas, monospace;
-  }
-  h1 { color: #54f2ff; font-size: 18px; margin: 0; letter-spacing: 2px; }
-  p { margin: 0; max-width: min(48ch, 100%); text-align: center; }
-  kbd {
-    background: #16224d; color: #e8ecff; border: 1px solid #2b3550;
-    border-radius: 3px; padding: 1px 5px; font: inherit;
-  }
-  a { color: #3ddc4a; }
-  footer { font-size: 12px; opacity: .75; text-align: center; }
-</style>
+<link rel="stylesheet" href="gk-tokens.css">
+<link rel="stylesheet" href="title.css">
 </head>
 <body>
-  <h1>RETRO SURFER '96</h1>
-  <p>Click the screen, then <kbd>Enter</kbd> to start.
-     <kbd>←</kbd><kbd>→</kbd> lean the board (tap to nudge, hold to carve),
-     <kbd>↓</kbd> tuck for speed, <kbd>↑</kbd> brake.
-     On a phone, drag anywhere on the game.</p>
+<div id="title" class="rs-title" hidden>
+  <canvas class="rs-scene" aria-hidden="true"></canvas>
+  <div class="rs-shade" aria-hidden="true"></div>
+  <main>
+    <h1 class="rs-mark" aria-label="Retro Surfer '96"><canvas aria-hidden="true"></canvas></h1>
+    <p class="rs-sub">Ride the information superhighway</p>
+    <nav class="rs-menu" aria-label="Main menu">
+      <button data-act="new" class="dflt"><kbd>N</kbd><span class="lbl">New game</span><span class="meta" id="best"></span></button>
+      <div class="util">
+        <button data-act="settings"><kbd>S</kbd><span class="lbl">Settings</span></button>
+        <button data-act="help"><kbd>?</kbd><span class="lbl">Help</span></button>
+        <button data-act="about"><kbd>A</kbd><span class="lbl">About</span></button>
+      </div>
+      <div class="legend">
+        <canvas id="greens" aria-hidden="true"></canvas>
+        <p><b>Grab the green ones.</b> Big junk just slows you, and Clippy is right behind.</p>
+      </div>
+    </nav>
+  </main>
+  <footer class="rs-foot"><span class="gk-credit">Built by <a href="https://greykit.com/" target="_blank" rel="noopener">greykit.com</a></span></footer>
+</div>
 
-  <div data-retro-surfer data-width="420"></div>
+<div id="play" hidden>
+  <div class="rs-bar">
+    <button id="menubtn" title="Back to the title (Esc)"><kbd>Esc</kbd><span>Menu</span></button>
+    <span class="rs-hint" id="hint"></span>
+    <button id="snd" aria-label="Sound" aria-pressed="true" title="Sound (M)"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor"/><path class="on" d="M11 5.5c1.2 1.4 1.2 3.6 0 5M12.8 3.8c2.1 2.4 2.1 6 0 8.4" stroke="currentColor" stroke-width="1.4" fill="none"/><path class="off" d="M11 5.5l4 5M15 5.5l-4 5" stroke="currentColor" stroke-width="1.4"/></svg></button>
+  </div>
+  <div id="host"></div>
+</div>
 
-  <p>Grab the green things. The big junk can't hurt you &mdash; it just wrecks
-     your speed, which is exactly when Clippy arrives to help.</p>
-
-  <footer>
-    Konami code
-    (<kbd>↑</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd><kbd>←</kbd><kbd>→</kbd><kbd>B</kbd><kbd>A</kbd>)
-    opens it as an overlay.
-    <div class="gk-credit">Built by <a href="https://greykit.com/" target="_blank" rel="noopener">greykit.com</a></div>
-  </footer>
-
-  <script src="retro-surfer.js"></script>
-  <script>RetroSurfer.konami({ width: 440 });</script>
+<script src="gk-title.js"></script>
+<script src="retro-surfer.js"></script>
+<script src="title.js"></script>
 </body>
 </html>

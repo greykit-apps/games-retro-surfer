@@ -14,9 +14,11 @@
 # the default branch or deploy from another one, protect it too or the deploy
 # will run with empty DREAMHOST_* vars and fail at ssh.
 #
-# Only index.html and retro-surfer.js ship. README.md, LICENSE and tools/
-# stay in the repo. The game is one self-contained script that injects its own
-# CSS, so there is no build step and nothing to bundle.
+# The game is retro-surfer.js, one self-contained script that injects its own
+# CSS (greykit.com's Konami egg loads it alone). The standalone page around it
+# is index.html, title.js and title.css, with the canon boot (gk-title.js) and
+# palette (gk-tokens.css) copied from games-meta. No build step; README.md,
+# DEVELOPMENT.md and tools/ stay in the repo.
 #
 # No --delete: this preserves untracked server-side files in the directory
 # (.htaccess for cache headers, etc.) that don't live in this repo. The
@@ -35,9 +37,13 @@ validate:
   image: node:20-alpine
   script:
     - node --check retro-surfer.js
+    - node --check gk-title.js
+    - node --check title.js
     - node tools/check-sprites.js
     - test -s index.html
-    - grep -q 'data-retro-surfer' index.html
+    - grep -q 'src="retro-surfer.js"' index.html
+    - grep -q '@gk-title-begin' gk-title.js
+    - grep -q '@gk-tokens-begin' gk-tokens.css
 
 deploy:
   stage: deploy
@@ -91,12 +97,12 @@ deploy:
     - MD5=$(md5sum retro-surfer.js | awk '{print $1}')
     - printf '{"size":%s,"md5":"%s","commit":"%s"}\n' "$BYTES" "$MD5" "$SHA" > version.json
     # Ensure the subdirectory exists (first deploy creates the leaf), then ship
-    # the two runtime files. Apache serves index.html for the bare directory,
+    # the runtime files. Apache serves index.html for the bare directory,
     # so both /games/retrosurfer96/ and /games/retrosurfer96/index.html resolve.
     # icon.svg / apple-touch-icon.png are referenced from the <head>; this job
     # ships an explicit list, so leaving them out means the links 404 while the
     # pipeline still goes green.
-    - puma_rsync --rsync-path="mkdir -p '/home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/' && rsync" -avz --chmod=F644 index.html retro-surfer.js version.json icon.svg apple-touch-icon.png ${DREAMHOST_USERNAME}@${DREAMHOST_HOST}:/home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/
+    - puma_rsync --rsync-path="mkdir -p '/home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/' && rsync" -avz --chmod=F644 index.html retro-surfer.js title.js title.css gk-title.js gk-tokens.css version.json icon.svg apple-touch-icon.png ${DREAMHOST_USERNAME}@${DREAMHOST_HOST}:/home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/
   environment:
     name: production
     url: https://greykit.com/games/retrosurfer96/
@@ -104,5 +110,9 @@ deploy:
     paths:
       - index.html
       - retro-surfer.js
+      - title.js
+      - title.css
+      - gk-title.js
+      - gk-tokens.css
       - version.json
     expire_in: 30 days

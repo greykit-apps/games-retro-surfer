@@ -4,6 +4,36 @@ Vanilla JS, no dependencies, no image or audio assets — every sprite is
 character-grid data drawn into an offscreen canvas at load, and the CSS
 injects itself. One `<script>` tag (~165 KB raw, ~29 KB gzipped).
 
+## The standalone page
+
+`index.html` is the game as a greykit.games title: the canon boot (the
+greykit face, a load bar and a modem log), then a title in dark glass after
+Raid on Puma Bay and Airborne Puma, then the game. It is four files around
+the engine:
+
+- `gk-title.js` and `gk-tokens.css` — byte-for-byte copies of games-meta's
+  `canon/` (STANDARD.md §3, §4). The page uses only the boot, the reload
+  line and the menu-key helpers from the block; never edit them here.
+- `title.css` — the title, the sheets and the play frame.
+- `title.js` — everything the page does: the backdrop, the menu (New game;
+  Settings, Help, About), the sheets, and the run.
+
+The backdrop is not the game running. It borrows the art through
+`RetroSurfer.art` (the sprite blitter, the glowing pickup, the 3×5 text, the
+eras) and runs its own attract loop: junk rising past, a puma weaving down a
+path it can always see coming, grabbing the green, Clippy hanging on behind.
+The wordmark is the game's own pixel face at a whole-pixel scale.
+
+New game mounts the engine and calls `start()`, past the canvas's own title,
+so the four pickups and "grab the green ones" now sit at the foot of the menu
+instead. Esc goes back to the title; M switches sound anywhere, through the
+engine's `setMuted()`. Settings → Forget everything removes every key starting
+`retroSurfer`, never `localStorage.clear()`, because every game on
+greykit.com shares one origin.
+
+Debug: `?play` skips the boot and title straight into a run; `?shot` shows
+the title without its entrance.
+
 ## Embedding
 
 ```html
@@ -15,9 +45,14 @@ Any element with `data-retro-surfer` auto-mounts on DOM ready. Or mount it
 from script:
 
 ```js
-var game = RetroSurfer.mount(document.getElementById('egg'), { width: 420 });
+var game = RetroSurfer.mount(document.getElementById('egg'), { width: 420, muted: false });
+game.start();        // straight into a run, past the canvas title
+game.setMuted(true);
 game.destroy();
 ```
+
+`muted`, `start()` and `setMuted()` are for a page with a title of its own;
+the Konami overlay uses none of them and behaves as it always has.
 
 As an actual easter egg — Konami code (↑↑↓↓←→←→BA) opens it in an overlay,
 Escape or clicking the backdrop closes it:
@@ -345,7 +380,9 @@ it read as a tuft on top of the head.
 ## Files
 
 - `retro-surfer.js` — the whole game (art and styles included)
-- `index.html` — playable page; deployed, and doubles as the local demo
+- `index.html` — the standalone page: boot, title, game
+- `title.js`, `title.css` — the page's title, sheets and play frame
+- `gk-title.js`, `gk-tokens.css` — games-meta canon, copied byte for byte
 - `tools/gen-sprites.js` — sprite art generator, dev-only
 - `tools/splice.js` — regenerates the art and writes it into the game, dev-only
 - `tools/sheet.js` — PNG contact sheet of every sprite, dev-only
