@@ -55,7 +55,7 @@
     cv.width = w; cv.height = 12;
     cv.style.width = w * p + "px"; cv.style.height = 12 * p + "px";
     g.clearRect(0, 0, w, 12);
-    A.drawText(g, "RETRO", narrow ? Math.floor((w - A.textWidth("RETRO", 1)) / 2) : 0, 0, "#54f2ff", 1);
+    A.drawText(g, "RETRO", Math.floor((w - A.textWidth("RETRO", 1)) / 2), 0, "#54f2ff", 1);
     A.drawText(g, "SURFER", 0, 7, "#54f2ff", 1);
     A.drawText(g, "'96", A.textWidth("SURFER ", 1) + 1, 7, "#ff9f1c", 1);
   }
@@ -91,13 +91,12 @@
     S.w = Math.ceil(innerWidth / S.k); S.h = Math.ceil(innerHeight / S.k);
     S.cv.width = S.w; S.cv.height = S.h;
     S.g = S.cv.getContext("2d"); S.g.imageSmoothingEnabled = false;
-    const wide = innerWidth >= 760;
-    S.cx = Math.round(S.w * (wide ? 0.7 : 0.5));
-    S.amp = Math.min(S.w * (wide ? 0.13 : 0.3), 64);
-    /* a phone stacks the name and the menu down the middle: the puma rides
-       below them there, with Clippy peeking out under the glass */
-    S.ry = Math.round(S.h * (wide ? 0.44 : 0.86));
-    S.gap = wide ? 120 : 84;
+    /* the name and the menu stack down the middle: the puma rides below
+       them, with Clippy peeking out under the glass */
+    S.cx = Math.round(S.w * 0.5);
+    S.amp = Math.min(S.w * 0.3, 64);
+    S.ry = Math.round(S.h * 0.86);
+    S.gap = 84;
     if (!S.clipX) S.clipX = S.cx;
   }
 
