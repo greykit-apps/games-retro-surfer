@@ -15,14 +15,25 @@ the engine:
   `canon/` (STANDARD.md §3, §4). The page uses only the boot, the reload
   line and the menu-key helpers from the block; never edit them here.
 - `title.css` — the title, the sheets and the play frame.
-- `title.js` — everything the page does: the backdrop, the menu (New game;
-  Settings, Help, About), the sheets, and the run.
+- `title.js` — everything the page does: the title's backdrop, the menu (New
+  game; Settings, Help, About), the sheets, the line art behind a run, and the
+  run.
 
-The backdrop is not the game running. It borrows the art through
+The title's backdrop is not the game running. It borrows the art through
 `RetroSurfer.art` (the sprite blitter, the glowing pickup, the 3×5 text, the
 eras) and runs its own attract loop: junk rising past, a puma weaving down a
 path it can always see coming, grabbing the green, Clippy hanging on behind.
 The wordmark is the game's own pixel face at a whole-pixel scale.
+
+Behind a run, either side of the 2:3 canvas, is a static SVG in the line art
+the other Tactical games draw behind play (PumaHeart's and PumaCity's scene
+colours, their 1600×900 `xMidYMax slice` method): cyberspace, 1996 — a
+grid floor running to a skyline of server towers, the web strung across the
+sky with a wireframe globe in it, a giant CRT with a browser up and the modem
+on top on the left, and pop-ups (the pointer on OK), a hit counter and an
+UNDER CONSTRUCTION barrier on the right. The canvas scales with the window's
+height as the picture does, so it always covers about x 515–1085 of it; keep
+anything that should be seen outside that band.
 
 New game mounts the engine and calls `start()`, past the canvas's own title,
 so the four pickups and "grab the green ones" now sit at the foot of the menu
