@@ -18,13 +18,15 @@ Distance is scored in KB downloaded, and speed reads out in baud. Size says what
 | ↓ | Tuck, for speed |
 | ↑ | Brake |
 | Space | Jump; hold to stay up |
-| Enter | Start, restart |
+| Enter | Ride again after a crash |
+| Esc | Back to the title |
+| M | Sound on and off |
 
 On a touchscreen, one finger is a virtual stick and a second finger jumps. The game pauses when it loses focus.
 
 ## Saves
 
-The high score is kept in the browser's `localStorage` under `retroSurferHighScore`.
+The high score is kept in the browser's `localStorage` under `retroSurferHighScore`, and the sound setting under `retroSurfer_muted_v1`. Settings → Forget everything clears both.
 
 ## Credits
 
