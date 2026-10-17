@@ -127,7 +127,41 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-
 
 /* ---- the game: the canvas centred, a glass strip above it ---- */
 #play { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px 12px 16px;
-  background: radial-gradient(ellipse 70% 60% at 50% 40%, #0b1026 0%, var(--bg) 70%); }
+  background: var(--bg); }
+#play > :not(.rs-backdrop) { position: relative; z-index: 1; }
+
+/* the line-drawn cyberspace either side of the canvas (title.js draws it):
+   low contrast on purpose, so it frames the run and never competes with it.
+   The values are PumaHeart's and PumaCity's scene colours; cyan and amber
+   only where something is lit. */
+.rs-backdrop { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+  background: linear-gradient(#05070f 0%, #070b17 40%, #0b1026 62%, #0a0f22 100%); }
+.rs-backdrop svg { display: block; width: 100%; height: 100%; }
+.rs-backdrop .sf { fill: #0a0f1d; stroke: #2a3960; stroke-width: 2; stroke-linejoin: round; }
+.rs-backdrop .sf.far { fill: #080c18; stroke: #1d2948; }
+.rs-backdrop .sf.sign { fill: #0b1428; }
+.rs-backdrop .sf.ptr { fill: #111a30; stroke: #47609c; }
+.rs-backdrop .sf.hg { stroke: #1d2948; }
+.rs-backdrop .sground { fill: #070a15; }
+.rs-backdrop .sgrid { fill: none; stroke: #54f2ff; stroke-opacity: .09; stroke-width: 1.2; }
+.rs-backdrop .sl { fill: none; stroke: #2a3960; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.rs-backdrop .sd { fill: none; stroke: #1d2948; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.rs-backdrop .slink { fill: none; stroke: #54f2ff; stroke-opacity: .28; stroke-width: 1.5; stroke-linecap: round; }
+.rs-backdrop .swire { fill: none; stroke: #24325a; stroke-width: 1.2; }
+.rs-backdrop .sorbit { fill: none; stroke: #54f2ff; stroke-opacity: .16; stroke-width: 1.2; stroke-dasharray: 4 6; }
+.rs-backdrop .snode { fill: #0a0f1d; stroke: #2a3960; stroke-width: 1.5; }
+.rs-backdrop .sstripe { fill: #ffb000; opacity: .22; }
+.rs-backdrop .st { fill: #8b96b8; opacity: .45; }
+.rs-backdrop .sscreen { fill: #54f2ff; opacity: .05; stroke: #54f2ff; stroke-opacity: .22; stroke-width: 1.5; }
+.rs-backdrop .scyan { fill: #54f2ff; opacity: .4; }
+.rs-backdrop .samber { fill: #ffb000; opacity: .45; }
+.rs-backdrop .dim { opacity: .22; }
+.rs-backdrop .sglow-cyan { fill: #54f2ff; opacity: .018; }
+.rs-backdrop .sglow-amber { fill: #ffb000; opacity: .07; }
+.rs-backdrop .stext { font: 600 12px var(--mono); letter-spacing: .1em; fill: #3a4d80; }
+.rs-backdrop .stext.lit { fill: #54f2ff; opacity: .4; }
+.rs-backdrop .stext.sm { font-size: 10px; letter-spacing: .04em; }
+.rs-backdrop .stext.big { font-size: 15px; letter-spacing: .14em; fill: #8a6a1e; }
 .rs-bar { flex: none; display: flex; align-items: center; gap: 10px; width: 100%; max-width: var(--gw, 420px); }
 .rs-bar button { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; font-size: 13px;
   background: var(--rs-glass); border-color: var(--rs-edge); color: var(--rs-muted); border-radius: 6px; }

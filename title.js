@@ -230,6 +230,148 @@
     titleArrow(menu(), ev);
   }
 
+  /* ---- the backdrop behind a run ----
+     One 1600x900 picture drawn "xMidYMax slice", in the line art the other
+     Tactical games put behind play (PumaHeart's and PumaCity's scene values:
+     navy fills, slate strokes, cyan and amber sparingly). The 2:3 canvas
+     scales with the window's height as the picture does, so it always covers
+     about x 515-1085; the landmarks stand either side of that, in x 140-490
+     and 1110-1460, with the edges for wide windows. Cyberspace, 1996: a grid
+     floor running to a skyline of server towers, the web strung across the
+     sky; a CRT the size of a building on the left, a browser up and the
+     modem dialling at its foot; pop-ups stacking on the right, the pointer
+     on OK, and the page UNDER CONSTRUCTION. Drawn once; nothing in it moves. */
+  const SH = 560, SVX = 800;              /* the horizon, and the vanishing point on it */
+  function sceneRand(seed) {
+    let s = seed >>> 0;
+    return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296;
+  }
+  const f1 = n => Math.round(n * 10) / 10;
+  /* a 90s window: frame, title bar with its three boxes, then the body */
+  function sceneWindow(x, y, w, h, title) {
+    let o = `<rect class="sf" x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/>`;
+    o += `<path class="sl" d="M${x} ${y + 22} H${x + w}"/>`;
+    for (let i = 0; i < 3; i++) o += `<rect class="sd" x="${x + w - 18 - i * 16}" y="${y + 6}" width="11" height="10"/>`;
+    if (title) o += `<text class="stext" x="${x + 10}" y="${y + 16}">${title}</text>`;
+    return o;
+  }
+  /* the pointer, tip at (x, y) */
+  const scenePointer = (x, y, s) =>
+    `<path class="sf ptr" d="M${x} ${y} v${f1(34 * s)} l${f1(8 * s)} ${f1(-8 * s)} l${f1(7 * s)} ${f1(15 * s)} l${f1(6 * s)} ${f1(-3 * s)} l${f1(-7 * s)} ${f1(-15 * s)} h${f1(11 * s)} Z"/>`;
+  function sceneSVG() {
+    const H = SH, VX = SVX, r = sceneRand(96);
+    let o = "";
+    /* stars, thinner toward the horizon */
+    for (let i = 0; i < 110; i++) {
+      const x = Math.round(r() * 1600), y = Math.round(Math.pow(r(), 1.3) * (H - 60)), big = r() < 0.22;
+      o += `<circle class="st" cx="${x}" cy="${y}" r="${big ? 1.6 : 1}"/>`;
+    }
+
+    /* the web across the sky: nodes, the links between them, packets on two */
+    const nodes = [[60, 120], [170, 70], [300, 400], [420, 120], [470, 300], [560, 60],
+                   [1050, 70], [1120, 150], [1260, 60], [1420, 110], [1540, 210], [1500, 40]];
+    const links = [[0, 1], [1, 3], [3, 5], [3, 4], [4, 2], [5, 6], [6, 7], [6, 8], [8, 11], [8, 9], [9, 10], [9, 11]];
+    for (const [a, b] of links) o += `<path class="swire" d="M${nodes[a][0]} ${nodes[a][1]} L${nodes[b][0]} ${nodes[b][1]}"/>`;
+    for (const [x, y] of nodes) o += `<circle class="snode" cx="${x}" cy="${y}" r="3.5"/>`;
+    for (const [a, b, t] of [[1, 3, .4], [8, 9, .6]]) {
+      const [x0, y0] = nodes[a], [x1, y1] = nodes[b];
+      o += `<rect class="samber" x="${f1(x0 + (x1 - x0) * t - 3)}" y="${f1(y0 + (y1 - y0) * t - 3)}" width="6" height="6"/>`;
+    }
+
+    /* the world wide web itself: a wireframe globe, wired in */
+    const GX = 270, GY = 230, GR = 78;
+    o += `<path class="swire" d="M${GX - 40} ${GY - 67} L170 70 M${GX + 60} ${GY - 50} L420 120 M${GX + 50} ${GY + 60} L300 400"/>`;
+    o += `<circle class="sglow-cyan" cx="${GX}" cy="${GY}" r="${GR + 26}"/>`;
+    o += `<circle class="sf" cx="${GX}" cy="${GY}" r="${GR}"/>`;
+    let gl = "";
+    for (const k of [0.35, 0.7]) gl += `M${GX} ${GY - GR} A${f1(GR * k)} ${GR} 0 0 0 ${GX} ${GY + GR} A${f1(GR * k)} ${GR} 0 0 0 ${GX} ${GY - GR} `;
+    gl += `M${GX} ${GY - GR} V${GY + GR} `;
+    for (const k of [-0.62, -0.3, 0, 0.3, 0.62]) {
+      const y = GY + GR * k, hw = Math.sqrt(GR * GR - (GR * k) ** 2);
+      gl += `M${f1(GX - hw)} ${f1(y)} H${f1(GX + hw)} `;
+    }
+    o += `<path class="sd" d="${gl}"/>`;
+    o += `<ellipse class="sorbit" cx="${GX}" cy="${GY}" rx="${GR + 40}" ry="22" transform="rotate(-16 ${GX} ${GY})"/>`;
+    o += `<circle class="scyan" cx="${GX + GR + 34}" cy="${GY - 30}" r="3"/>`;
+
+    /* the skyline on the horizon: server towers, a light or two lit */
+    let sky = `M-20 ${H}`;
+    const towers = [];
+    for (let x = -20; x < 1620;) {
+      const w = 26 + Math.round(r() * 40), h = 18 + Math.round(r() * 64);
+      sky += ` V${H - h} H${x + w}`;
+      towers.push([x, w, h]);
+      x += w;
+    }
+    o += `<path class="sf far" d="${sky} V${H} Z"/>`;
+    for (const [x, w, h] of towers) {
+      if (r() < 0.5) o += `<path class="sd" d="M${x + 6} ${H - h + 10} h${w - 12} M${x + 6} ${H - h + 18} h${w - 12}"/>`;
+      if (r() < 0.18) o += `<rect class="${r() < .5 ? "scyan" : "samber"} dim" x="${x + w / 2 - 2}" y="${H - h + 26}" width="4" height="4"/>`;
+    }
+
+    /* the grid floor, running out to the horizon */
+    o += `<rect class="sground" x="0" y="${H}" width="1600" height="${900 - H}"/>`;
+    let grid = "";
+    for (let x = -2400; x <= 4000; x += 160) grid += `M${VX} ${H} L${x} 900 `;
+    for (const z of [1, 1.25, 1.6, 2.05, 2.7, 3.6, 5, 7.2, 11, 18]) grid += `M0 ${f1(H + 340 / z)} H1600 `;
+    o += `<path class="sgrid" d="${grid}"/>`;
+    o += `<path class="sl" d="M0 ${H} H1600"/>`;
+
+    /* the CRT the size of a building, a browser up on it */
+    const MX = 300, MB = 820;              /* its centre, and where it stands */
+    o += `<path class="sf" d="M${MX - 120} ${MB - 70} L${MX - 150} ${MB - 300} H${MX + 150} L${MX + 120} ${MB - 70} Z"/>`;
+    o += `<path class="sf" d="M${MX - 90} ${MB} L${MX - 60} ${MB - 40} H${MX + 60} L${MX + 90} ${MB} Z"/>`;
+    o += `<rect class="sf" x="${MX - 180}" y="${MB - 400}" width="360" height="300" rx="20"/>`;
+    o += `<rect class="sglow-cyan" x="${MX - 200}" y="${MB - 420}" width="400" height="340" rx="44"/>`;
+    o += `<rect class="sscreen" x="${MX - 152}" y="${MB - 374}" width="304" height="232" rx="14"/>`;
+    const BX = MX - 140, BY = MB - 362, BW = 280;
+    o += `<path class="sd" d="M${BX} ${BY + 20} H${BX + BW} M${BX} ${BY + 46} H${BX + BW}"/>`;
+    o += `<text class="stext lit" x="${BX + 6}" y="${BY + 14}">NETSURFER 2.0</text>`;
+    o += `<rect class="sd" x="${BX + 6}" y="${BY + 26}" width="200" height="14" rx="2"/><text class="stext lit sm" x="${BX + 12}" y="${BY + 37}">http://www.</text>`;
+    o += `<rect class="scyan" x="${BX + 88}" y="${BY + 28}" width="2" height="10"/>`;
+    o += `<rect class="sd" x="${BX + BW - 40}" y="${BY + 24}" width="34" height="18"/><path class="sd" d="M${BX + BW - 33} ${BY + 38} l10 -10 l10 10"/>`;
+    o += `<path class="sd" d="M${BX + 10} ${BY + 66} h150 M${BX + 10} ${BY + 80} h120 M${BX + 10} ${BY + 94} h140 M${BX + 10} ${BY + 120} h96 M${BX + 10} ${BY + 134} h120 M${BX + 10} ${BY + 148} h80"/>`;
+    o += `<path class="slink" d="M${BX + 10} ${BY + 168} h70 M${BX + 96} ${BY + 168} h60"/>`;
+    o += `<rect class="sd" x="${BX + 180}" y="${BY + 62}" width="88" height="66"/><path class="sd" d="M${BX + 180} ${BY + 128} l26 -30 l20 18 l14 -12 l28 24"/>`;
+    o += `<circle class="sd" cx="${BX + 250}" cy="${BY + 78}" r="6"/>`;
+    o += `<circle class="samber" cx="${MX + 150}" cy="${MB - 120}" r="3"/>`;
+    /* the keyboard at its foot */
+    o += `<path class="sf" d="M${MX - 150} ${MB + 34} L${MX - 132} ${MB + 6} H${MX + 132} L${MX + 150} ${MB + 34} Z"/>`;
+    o += `<path class="sd" d="M${MX - 136} ${MB + 16} H${MX + 136} M${MX - 141} ${MB + 25} H${MX + 141}"/>`;
+
+    /* the modem on top of it, lights on, the phone cord down its side */
+    const DX = MX - 130, DB = MB - 400;
+    o += `<path class="swire" d="M${DX} ${DB - 10} c-24 0 -30 20 -30 40 c0 12 -14 12 -14 24 s14 12 14 24 s-14 12 -14 24 s14 12 14 24 c0 40 -40 60 -70 70"/>`;
+    o += `<path class="sf" d="M${DX} ${DB} L${DX + 10} ${DB - 30} H${DX + 120} L${DX + 128} ${DB} Z"/>`;
+    for (let i = 0; i < 6; i++) o += `<circle class="${i === 1 || i === 4 ? "samber" : "scyan dim"}" cx="${DX + 26 + i * 16}" cy="${DB - 12}" r="2.5"/>`;
+
+    /* the pop-ups, stacking on the right, the pointer on OK */
+    o += sceneWindow(1150, 150, 230, 150, "WELCOME!!!");
+    o += `<path class="sd" d="M1164 196 h140 M1204 210 h110 M1204 224 h150 M1204 250 h90"/>`;
+    o += `<path class="slink" d="M1164 276 h70"/>`;
+    o += sceneWindow(1240, 260, 250, 140, "CONGRATULATIONS");
+    o += `<text class="stext" x="1256" y="314">YOU ARE THE</text><text class="stext" x="1256" y="334">1,000,000th VISITOR</text>`;
+    o += `<rect class="sf" x="1380" y="356" width="56" height="26" rx="2"/><text class="stext" x="1408" y="374" text-anchor="middle">OK</text>`;
+    o += sceneWindow(1100, 410, 180, 110, "");
+    o += `<path class="sf hg" d="M1180 448 h20 l-8 14 l8 14 h-20 l8 -14 Z"/><path class="sd" d="M1174 448 h32 M1174 476 h32"/>`;
+    o += scenePointer(1420, 372, 1.15);
+
+    /* the page UNDER CONSTRUCTION: a barrier on the grid, a hit counter */
+    const UX = 1290, UB = 840;
+    o += `<path class="sl" d="M${UX - 120} ${UB} L${UX - 96} ${UB - 90} M${UX - 70} ${UB} L${UX - 96} ${UB - 90} M${UX + 120} ${UB} L${UX + 96} ${UB - 90} M${UX + 70} ${UB} L${UX + 96} ${UB - 90}"/>`;
+    o += `<rect class="sf" x="${UX - 140}" y="${UB - 108}" width="280" height="32"/>`;
+    let st = "";
+    for (let x = UX - 132; x < UX + 132; x += 28) st += `M${x} ${UB - 78} l16 -28 h10 l-16 28 Z `;
+    o += `<path class="sstripe" d="${st}"/>`;
+    o += `<rect class="sf sign" x="${UX - 132}" y="${UB - 160}" width="264" height="40" rx="3"/>`;
+    o += `<text class="stext big" x="${UX}" y="${UB - 133}" text-anchor="middle">UNDER CONSTRUCTION</text>`;
+    o += `<circle class="samber" cx="${UX - 96}" cy="${UB - 116}" r="4"/><circle class="sglow-amber" cx="${UX - 96}" cy="${UB - 116}" r="14"/>`;
+    o += `<circle class="samber" cx="${UX + 96}" cy="${UB - 116}" r="4"/><circle class="sglow-amber" cx="${UX + 96}" cy="${UB - 116}" r="14"/>`;
+    o += `<rect class="sf" x="1330" y="430" width="112" height="30" rx="2"/>`;
+    for (let i = 0; i < 6; i++) o += `<rect class="sd" x="${1336 + i * 17.5}" y="435" width="14" height="20"/><text class="stext sm" x="${1343 + i * 17.5}" y="450" text-anchor="middle">${"001996"[i]}</text>`;
+    return `<svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">${o}</svg>`;
+  }
+
   /* ---- a game ---- */
   /* the canvas is 2:3; it gets the most room that keeps the strip above it */
   function fitWidth() {
@@ -437,6 +579,7 @@
     menu().addEventListener("click", ev => { const b = ev.target.closest("[data-act]"); if (b) act(b.dataset.act); });
     $("menubtn").addEventListener("click", toTitle);
     $("snd").addEventListener("click", () => setMuted(!muted));
+    $("backdrop").innerHTML = sceneSVG();
     sizeScene();
     /* a few seconds of slope already ridden, so the title never opens empty */
     for (let n = 0; n < 150; n++) step(1 / 30);
