@@ -1,3 +1,9 @@
 .DS_Store
 node_modules/
-.claude/
+# .claude/ is local, except the skills a cloud session needs (games-meta STANDARD.md §12).
+# Last in the file so no rule above can hide part of a skill.
+!.claude/
+.claude/*
+!.claude/skills/
+!.claude/skills/**
+.claude/skills/**/.DS_Store
