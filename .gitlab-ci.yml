@@ -41,7 +41,8 @@ validate:
     - node --check title.js
     - node tools/check-sprites.js
     - test -s index.html
-    - grep -q 'src="retro-surfer.js"' index.html
+    - grep -q 'src="retro-surfer.js?v=' index.html
+    - node tools/stamp-assets.js --check
     - grep -q '@gk-title-begin' gk-title.js
     - grep -q '@gk-tokens-begin' gk-tokens.css
 

@@ -387,20 +387,34 @@ it read as a tuft on top of the head.
 - `tools/splice.js` — regenerates the art and writes it into the game, dev-only
 - `tools/sheet.js` — PNG contact sheet of every sprite, dev-only
 - `tools/check-sprites.js` — art integrity check, run in CI
+- `tools/stamp-assets.js` — stamps each script and stylesheet URL in
+  `index.html` with its content hash (`--check` only reports), run in CI
 
 ## Deploying
 
 Pushing to `main` runs `.gitlab-ci.yml`, which validates and then rsyncs
-`index.html`, `retro-surfer.js` and a `version.json` fingerprint over SSH to
-**https://greykit.com/games/retrosurfer96/**. There's no build step — the game
-is one self-contained script that injects its own CSS.
+the page, its scripts and stylesheets, and a `version.json` fingerprint over
+SSH to **https://greykit.com/games/retrosurfer96/**. There's no build step.
+
+**Stamp before you commit.** greykit.com sits behind Cloudflare, which keeps
+`.js` and `.css` for 30 days. An unstamped change deploys fine and then never
+reaches players — worse, a new `title.js` beside a cached old
+`retro-surfer.js` throws on load and leaves a blank page. Every script and
+stylesheet URL in `index.html` carries a hash of its contents
+(`retro-surfer.js?v=2968d667`); the page itself isn't edge-cached, so a new
+hash is a new URL. CI fails on a stale stamp.
+
+```bash
+node tools/stamp-assets.js
+```
 
 Auth comes from `DREAMHOST_SSH_KEY`, `DREAMHOST_HOST` and `DREAMHOST_USERNAME`,
 inherited from the `greykit-app` group. They're *protected* variables, so
 they only reach pipelines on protected branches; `main` is protected here. If a
 deploy fails at the `ssh` step with empty variables, that's the thing to check.
 
-The validate stage runs `node --check` plus `tools/check-sprites.js`, which
+The validate stage runs `node --check`, the stamp check, and
+`tools/check-sprites.js`, which
 catches the failure modes this codebase actually has — a grid row that lost a
 character, a pixel referencing a colour that isn't in its palette, a sprite no
 era can spawn, or a hazard wearing the reserved pickup green. None of those
