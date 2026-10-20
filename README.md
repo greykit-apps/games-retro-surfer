@@ -26,7 +26,7 @@ On a touchscreen, one finger is a virtual stick and a second finger jumps. The g
 
 ## Saves
 
-The high score is kept in the browser's `localStorage` under `retroSurferHighScore`, and the sound setting under `retroSurfer_muted_v1`. Settings → Forget everything clears both.
+The high score is kept in the browser's `localStorage` under `retroSurferHighScore`, the sound setting under `retroSurfer_muted_v1`, and the music setting under `retroSurfer_music_v1`. Settings → Forget everything clears all three.
 
 ## Credits
 

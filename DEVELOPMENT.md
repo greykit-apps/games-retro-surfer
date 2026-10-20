@@ -8,12 +8,23 @@ injects itself. One `<script>` tag (~165 KB raw, ~29 KB gzipped).
 
 `index.html` is the game as a greykit.games title: the canon boot (the
 greykit face, a load bar and a modem log), then a title in dark glass after
-Raid on Puma Bay and Airborne Puma, then the game. It is four files around
+Raid on Puma Bay and Airborne Puma, then the game. It is six files around
 the engine:
 
 - `gk-title.js` and `gk-tokens.css` — byte-for-byte copies of games-meta's
   `canon/` (STANDARD.md §3, §4). The page uses only the boot, the reload
   line and the menu-key helpers from the block; never edit them here.
+- `gk-intro.js` — games-meta's integrated intro (§14, v0.2): the boot's meow,
+  the hold for the press that lets sound play, the title's entrance, the
+  Sound and Music switches and the menu's ticks. Unlike the two above it is
+  an *adapted* copy, as §14 allows: its selectors read the game's own title
+  (`.rs-title`, `.rs-menu`, `.rs-sub`, `.rs-shade`, `.dflt`) instead of
+  canon's mountTitle, and its header says what else differs. A newer canon
+  version is taken whole and the same adaptation made again.
+- `music.js` — the title theme: surf rock on a sound chip (pulse lead and
+  echo, triangle bass, noise kit), synthesised, no audio files.
+  `RSMusic.render(seconds, { mute: ["bass", ...] })` renders it offline in
+  the console, for checking levels without a speaker.
 - `title.css` — the title, the sheets and the play frame.
 - `title.js` — everything the page does: the title's backdrop, the menu (New
   game; Settings, Help, About), the sheets, the line art behind a run, and the
@@ -394,6 +405,8 @@ it read as a tuft on top of the head.
 - `index.html` — the standalone page: boot, title, game
 - `title.js`, `title.css` — the page's title, sheets and play frame
 - `gk-title.js`, `gk-tokens.css` — games-meta canon, copied byte for byte
+- `gk-intro.js` — games-meta's integrated intro, adapted to this title
+- `music.js` — the title theme
 - `tools/gen-sprites.js` — sprite art generator, dev-only
 - `tools/splice.js` — regenerates the art and writes it into the game, dev-only
 - `tools/sheet.js` — PNG contact sheet of every sprite, dev-only
