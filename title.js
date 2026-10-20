@@ -1,11 +1,14 @@
 /* Retro Surfer '96 -- the standalone page around the game.
  *
- * The greykit.games boot (the canon @gk-title block, games-meta STANDARD.md
- * §3), then a title of the game's own in dark glass, after Raid on Puma Bay
- * and Airborne Puma: the slope scrolling behind it with the puma carving down
- * and Clippy on its tail, the name in the game's own pixel face, the menu
- * (New game; Settings, Help, About) and the §1 credit. Then the game, mounted
- * from retro-surfer.js and started past its own canvas title.
+ * The integrated intro (games-meta STANDARD.md §14, gk-intro.js): the
+ * greykit.games boot (the canon @gk-title block, §3) with its meow, a hold
+ * for the press that lets sound play, then a title of the game's own in dark
+ * glass, after Raid on Puma Bay and Airborne Puma: the slope scrolling behind
+ * it with the puma carving down and Clippy on its tail, the surf theme
+ * (music.js) counting in, the name arriving a line at a time in the game's
+ * own pixel face, then the menu (New game; Settings, Help, About), the §1
+ * credit under it and the Sound and Music switches top right. Then the game,
+ * mounted from retro-surfer.js and started past its own canvas title.
  *
  * greykit.com's Konami egg loads retro-surfer.js alone and never sees any of
  * this; everything here reaches the game through its public API. */
@@ -17,7 +20,7 @@
   const CREDIT = 'Built by <a href="https://greykit.com/" target="_blank" rel="noopener">greykit.com</a>';
   /* the game's own key predates the <game>_<feature>_v<n> pattern; every key
      this page keeps starts the same way, so Forget everything finds them all */
-  const PREFIX = "retroSurfer", KEY_HIGH = "retroSurferHighScore", KEY_MUTED = "retroSurfer_muted_v1";
+  const PREFIX = "retroSurfer", KEY_HIGH = "retroSurferHighScore", KEY_MUTED = "retroSurfer_muted_v1", KEY_MUSIC = "retroSurfer_music_v1";
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* no storage */ } }
@@ -30,34 +33,82 @@
   let mode = "boot";            /* boot | title | play */
   let game = null, sheet = null;
   let muted = store.get(KEY_MUTED) === "1";
+  let musicOn = store.get(KEY_MUSIC) !== "0";
 
-  /* ---- sound ---- */
+  /* ---- sound ----
+     The page's own context, for the title: Sound is the master, with the
+     music and the effects (the boot's meow, the menu's ticks) on buses under
+     it. A run makes its sound in the game's own context, which setMuted
+     reaches through the game's API; the title music stops while it plays. */
+  const AU = { ac: null, master: null, music: null, fx: null, theme: null };
+  function audio() {
+    if (!AU.ac) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      try { AU.ac = new AC(); } catch (e) { return null; }
+      AU.master = AU.ac.createGain(); AU.master.connect(AU.ac.destination);
+      AU.music = AU.ac.createGain(); AU.music.connect(AU.master);
+      AU.fx = AU.ac.createGain(); AU.fx.connect(AU.master);
+      AU.theme = RSMusic.create(AU.ac, AU.music);
+      applySound(true);
+    }
+    return AU.ac;
+  }
+  function applySound(now) {
+    if (!AU.ac) return;
+    const t = AU.ac.currentTime, k = now ? 0.001 : 0.04;
+    AU.master.gain.setTargetAtTime(muted ? 0 : 1, t, k);
+    AU.music.gain.setTargetAtTime(musicOn ? 0.7 : 0, t, k);
+  }
+  const startMusic = () => { if (audio() && mode === "title") AU.theme.start(); };
+  const stopMusic = () => { if (AU.theme) AU.theme.stop(); };
+  let switches = null;          /* the Sound and Music switches, once the title has them */
   function syncSound() {
     const b = $("snd");
     b.setAttribute("aria-pressed", String(!muted));
     b.classList.toggle("muted", muted);
+    if (switches) switches.refresh();
   }
   function setMuted(m) {
     muted = m;
     store.set(KEY_MUTED, m ? "1" : "0");
     if (game) game.setMuted(m);
+    applySound();
     syncSound();
     if (mode === "play") flashHint(m ? "Sound off" : "Sound on");
     if (sheet && sheet.refresh) sheet.refresh();
   }
+  function setMusic(on) {
+    musicOn = on;
+    store.set(KEY_MUSIC, on ? "1" : "0");
+    applySound();
+    syncSound();
+    if (sheet && sheet.refresh) sheet.refresh();
+  }
+  const TOGGLES = { sound: { get: () => !muted, set: on => setMuted(!on) }, music: { get: () => musicOn, set: setMusic } };
+  const tick = () => { if (AU.ac) gkTick(AU.ac, AU.fx); };
 
-  /* ---- the name, in the game's own 3x5 face at a whole-pixel scale ---- */
+  /* ---- the name, in the game's own 3x5 face at a whole-pixel scale ----
+     Two lines on two canvases of one width, so the intro can bring them in
+     one at a time; the gap between them is two of the face's pixels. */
   function drawMark() {
-    const cv = document.querySelector(".rs-mark canvas"), g = cv.getContext("2d");
+    const [top, bot] = document.querySelectorAll(".rs-mark canvas");
     const w = A.textWidth("SURFER '96", 1), narrow = innerWidth < 760;
     const want = narrow ? innerWidth - 48 : Math.min(innerWidth * 0.34, 440);
     const p = Math.max(4, Math.floor(want / w));
-    cv.width = w; cv.height = 12;
-    cv.style.width = w * p + "px"; cv.style.height = 12 * p + "px";
-    g.clearRect(0, 0, w, 12);
-    A.drawText(g, "RETRO", Math.floor((w - A.textWidth("RETRO", 1)) / 2), 0, "#54f2ff", 1);
-    A.drawText(g, "SURFER", 0, 7, "#54f2ff", 1);
-    A.drawText(g, "'96", A.textWidth("SURFER ", 1) + 1, 7, "#ff9f1c", 1);
+    const line = (cv, draw) => {
+      const g = cv.getContext("2d");
+      cv.width = w; cv.height = 5;
+      cv.style.width = w * p + "px"; cv.style.height = 5 * p + "px";
+      g.clearRect(0, 0, w, 5);
+      draw(g);
+    };
+    line(top, g => A.drawText(g, "RETRO", Math.floor((w - A.textWidth("RETRO", 1)) / 2), 0, "#54f2ff", 1));
+    line(bot, g => {
+      A.drawText(g, "SURFER", 0, 0, "#54f2ff", 1);
+      A.drawText(g, "'96", A.textWidth("SURFER ", 1) + 1, 0, "#ff9f1c", 1);
+    });
+    bot.parentNode.style.marginTop = 2 * p + "px";
   }
 
   /* the four pickups, glowing, at the foot of the menu: the rule the canvas
@@ -189,7 +240,12 @@
     if (!still()) S.raf = requestAnimationFrame(frame);
   }
   function stopScene() { cancelAnimationFrame(S.raf); S.raf = 0; }
-  document.addEventListener("visibilitychange", () => { if (!document.hidden && mode === "title") startScene(); });
+  /* a hidden tab's timers are throttled, which would leave the music in
+     scraps: the title's sound waits for the tab to come back */
+  document.addEventListener("visibilitychange", () => {
+    if (AU.ac) { if (document.hidden) AU.ac.suspend().catch(() => {}); else if (mode === "title") AU.ac.resume().catch(() => {}); }
+    if (!document.hidden && mode === "title") startScene();
+  });
 
   /* ---- the title ---- */
   const menu = () => document.querySelector("#title .rs-menu");
@@ -392,6 +448,7 @@
   function newGame() {
     closeSheet(true);
     stopScene();
+    stopMusic();
     mode = "play";
     $("title").hidden = true; $("play").hidden = false;
     $("hint").textContent = HINT;
@@ -400,10 +457,15 @@
     fitGame();
     game.start();
   }
+  /* back from a run: the title as the intro left it, no entrance again
+     (§14), and the theme from its count-in */
   function toTitle() {
     if (game) { game.destroy(); game = null; }
     $("host").innerHTML = "";
     openTitle(); revealTitle(true);
+    if (!switches) switches = gkIntegrate($("title"), { toggles: TOGGLES, tick });
+    syncSound();
+    startMusic();
   }
 
   /* ---- the sheets: a glass panel over the title ---- */
@@ -480,16 +542,20 @@
     let asking = false;
     openSheet("Settings", {
       html: () => asking
-        ? '<h3>This browser</h3><p class="lede">Forget everything Retro Surfer \'96 has saved in this browser: your best distance and the sound setting? This cannot be undone.</p>' +
+        ? '<h3>This browser</h3><p class="lede">Forget everything Retro Surfer \'96 has saved in this browser: your best distance and the sound and music settings? This cannot be undone.</p>' +
           '<div class="row"><button class="danger" data-k="yes">Forget everything</button><button data-k="no">Cancel</button></div>'
         : '<h3>Sound</h3><div class="row"><button class="pill' + (muted ? "" : " on") + '" data-k="on" aria-pressed="' + !muted + '">On</button>' +
           '<button class="pill' + (muted ? " on" : "") + '" data-k="off" aria-pressed="' + muted + '">Off</button></div>' +
-          '<p class="note"><kbd>M</kbd> switches it anywhere, mid-run too.</p>' +
+          '<p class="note">Everything, the music too. <kbd>M</kbd> switches it anywhere, mid-run too.</p>' +
+          '<h3>Music</h3><div class="row"><button class="pill' + (musicOn ? " on" : "") + '" data-k="mon" aria-pressed="' + musicOn + '">On</button>' +
+          '<button class="pill' + (musicOn ? "" : " on") + '" data-k="moff" aria-pressed="' + !musicOn + '">Off</button></div>' +
+          '<p class="note">The title theme alone; the effects play on' + (muted ? ", once Sound is on." : ".") + '</p>' +
           '<h3>This browser</h3><div class="row"><button class="danger" data-k="forget">Forget everything</button></div>' +
-          '<p class="note">Clears your best distance and the sound setting, and nothing any other game on greykit.com keeps.</p>',
+          '<p class="note">Clears your best distance and the sound and music settings, and nothing any other game on greykit.com keeps.</p>',
       onClick(b, s) {
         const k = b.dataset.k;
         if (k === "on" || k === "off") setMuted(k === "off");
+        else if (k === "mon" || k === "moff") setMusic(k === "mon");
         else if (k === "forget") { asking = true; s.refresh("no"); }
         else if (k === "no") { asking = false; s.refresh("forget"); }
         else if (k === "yes") forgetEverything();
@@ -570,6 +636,7 @@
   /* ---- boot ---- */
   function boot() {
     injectTitleCSS();       /* the boot's; the title and the sheets are title.css */
+    injectIntroCSS();       /* the hold, the entrance, the switches */
     syncSound();
     let i = 0;
     for (const el of document.querySelectorAll(".rs-menu > button, .rs-menu .util, .rs-menu .legend")) {
@@ -586,12 +653,37 @@
     const q = new URLSearchParams(location.search);
     /* debug: ?play straight into a run */
     if (q.has("play")) { newGame(); return; }
-    const run = runBoot({ lines: [bootReloadLine(), "ATDT 555-0196"] });
+    /* the meow goes through Sound like everything else, so a player who
+       turned it off is not greeted by a cat */
+    const intro = startIntro({ lines: [bootReloadLine(), "ATDT 555-0196"], audio,
+      bootSound: (ac, out, o) => gkBootSound(ac, AU.fx, o) });
+    if (AU.ac) gkMeowBuffer(AU.ac);
     openTitle();
+    /* debug, for screenshots: ?shot shows the menu without its entrance */
+    if (q.has("shot")) {
+      intro.cancel();
+      switches = gkIntegrate($("title"), { toggles: TOGGLES, tick });
+      revealTitle(false);
+      return;
+    }
     const b = best();
-    run.finish(["CONNECT 28800", b ? "best <b>" + b.toLocaleString("en-US") + " KB</b>" : "it looks like you're surfing"])
-      /* debug, for screenshots: ?shot shows the menu without its entrance */
-      .then(() => revealTitle(!q.has("shot")));
+    /* the name on the count-in's beats -- RETRO on 2, SURFER '96 on 4 -- and
+       the menu with the tune's first note, at the end of the count-in */
+    const beat = 60000 / RSMusic.BPM, lead = 80;
+    intro.finish({
+      more: ["CONNECT 28800", b ? "best <b>" + b.toLocaleString("en-US") + " KB</b>" : "it looks like you're surfing"],
+      title: $("title"),
+      name: "lines",
+      timing: { name: lead + beat, step: beat * 2, menu: lead + RSMusic.COUNT_IN * 1000, done: lead + RSMusic.COUNT_IN * 1000 + 1200 },
+      /* ?hold=always shows the hold even where the browser would already play sound */
+      hold: q.get("hold") || "auto",
+      toggles: TOGGLES,
+      tick,
+      onContinue: () => { const ac = audio(); if (ac && ac.state !== "running") ac.resume().catch(() => {}); },
+      onTitle: startMusic,
+      /* the rows print in under the fade, unless a press skipped the entrance */
+      onDone: () => revealTitle($("title").classList.contains("gki-intro"))
+    }).then(r => { switches = r.toggles; syncSound(); });
   }
   boot();
 })();

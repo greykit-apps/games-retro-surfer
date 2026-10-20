@@ -39,6 +39,8 @@ validate:
     - node --check retro-surfer.js
     - node --check gk-title.js
     - node --check title.js
+    - node --check gk-intro.js
+    - node --check music.js
     - node tools/check-sprites.js
     - test -s index.html
     - grep -q 'src="retro-surfer.js?v=' index.html

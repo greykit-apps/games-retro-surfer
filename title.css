@@ -39,14 +39,18 @@ a, body .gk-credit a { color: var(--accent); text-decoration: underline; text-de
 a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
 
 /* ---- the title: the slope behind, the name, the menu in glass ---- */
-.rs-title { position: fixed; inset: 0; overflow: hidden auto; background: #0b1026; }
+.rs-title { position: fixed; inset: 0; overflow: hidden auto; background: #0b1026;
+  /* the integrated intro's switches and credit (gk-intro.js), in this glass */
+  --t-panel: var(--rs-glass); --t-line: var(--rs-edge); --t-focus: var(--accent); --t-ink: var(--text);
+  --t-dim: var(--rs-muted); --t-hi: var(--accent); }
 .rs-scene { position: fixed; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
 .rs-shade { position: fixed; inset: 0; pointer-events: none;
   background: radial-gradient(ellipse 46% 70% at 50% 45%, rgba(5,7,15,.8) 0%, rgba(5,7,15,.6) 50%, rgba(5,7,15,.12) 100%),
     radial-gradient(ellipse 90% 95% at 50% 45%, rgba(0,0,0,0) 55%, rgba(3,4,12,.5) 100%); }
 .rs-title main { position: relative; min-height: 100%; width: min(640px, 100%); margin: 0 auto; display: flex; flex-direction: column;
   justify-content: center; align-items: center; text-align: center; padding: 40px 24px 72px; }
-.rs-mark { margin: 0; line-height: 0; }
+.rs-mark { margin: 0; line-height: 0; display: flex; flex-direction: column; align-items: center; }
+.rs-mark > span { display: block; }
 .rs-mark canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges;
   filter: drop-shadow(0 0 22px rgba(84,242,255,.28)) drop-shadow(0 4px 0 rgba(0,0,0,.45)); }
 .rs-sub { margin: 18px 0 30px; font-size: 13px; font-weight: 600; letter-spacing: .26em; text-transform: uppercase;
@@ -76,10 +80,18 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-
 .rs-menu .legend p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--rs-muted); }
 .rs-menu .legend b { color: var(--text); font-weight: 600; }
 .rs-foot { position: fixed; left: 16px; right: 16px; bottom: 22px; text-align: center; font-size: 13px; color: var(--rs-muted); }
+/* once the intro has moved the credit under the menu (§14) */
+.rs-title.gki main { padding-bottom: 40px; }
+.rs-title.gki main > .rs-foot { position: static; }
+/* the switches top right keep their own lit state, not the page's focus ring */
+.rs-title .gki-tg { -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.rs-title .gki-tg:focus { background: var(--rs-glass); border-color: var(--rs-edge); box-shadow: none; }
+.rs-title .gki-tg:hover, .rs-title .gki-tg:focus-visible { border-color: var(--accent); }
 
 /* the entrance: the panel's rows arrive one after another */
 .rs-print .pr { animation: rs-pr .32s cubic-bezier(.2,.8,.2,1) calc(var(--i) * 45ms) both; }
-.rs-print .rs-mark, .rs-print .rs-sub { animation: rs-rise .5s cubic-bezier(.22,1,.36,1) both; }
+/* the name and the line under it rise only where the intro has not brought them in already */
+.rs-print:not(.gki) .rs-mark, .rs-print:not(.gki) .rs-sub { animation: rs-rise .5s cubic-bezier(.22,1,.36,1) both; }
 @keyframes rs-pr { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
 @keyframes rs-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .rs-print .pr, .rs-print .rs-mark, .rs-print .rs-sub { animation: none; } }
