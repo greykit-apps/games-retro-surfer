@@ -109,7 +109,7 @@ deploy:
     # exactly that on 2026-10-20 and the live game went black. validate runs
     # tools/check-ship.js, which fails when index.html loads anything this line
     # or artifacts: paths: below doesn't carry. Add new files to both.
-    - puma_rsync --rsync-path="mkdir -p '/home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/' && rsync" -avz --chmod=F644 index.html retro-surfer.js title.js title.css gk-title.js gk-intro.js music.js gk-tokens.css version.json icon.svg apple-touch-icon.png ${DREAMHOST_USERNAME}@${DREAMHOST_HOST}:/home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/
+    - puma_rsync --rsync-path="mkdir -p '/home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/' && rsync" -avz --chmod=F644 index.html retro-surfer.js title.js title.css gk-title.js gk-intro.js music.js gk-tokens.css version.json icon.svg apple-touch-icon.png manifest.webmanifest ${DREAMHOST_USERNAME}@${DREAMHOST_HOST}:/home/${DREAMHOST_USERNAME}/greykit.com/games/retrosurfer96/
   environment:
     name: production
     url: https://greykit.com/games/retrosurfer96/
@@ -126,4 +126,5 @@ deploy:
       - version.json
       - icon.svg
       - apple-touch-icon.png
+      - manifest.webmanifest
     expire_in: 30 days

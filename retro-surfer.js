@@ -2700,11 +2700,16 @@
     function onVisibility() { if (document.hidden) onBlur(); }
 
     // --- touch ------------------------------------------------------
-    // One finger anywhere on the canvas acts as a virtual stick anchored
+    // One finger anywhere on the canvas (or the page's touchSurface) acts as a virtual stick anchored
     // where you first touched: drag sideways to lean (analog, so it feeds the
     // same eased model the keys do), drag down to tuck, up to brake.
     var touch = null;
     var usedTouch = false;
+    var COARSE = typeof matchMedia === "function" && matchMedia("(hover: none) and (pointer: coarse)").matches;
+    // The page may hand over a bigger surface than the canvas for the
+    // fingers (options.touchSurface): on a phone the room under the board is
+    // where a thumb rests. Its own buttons stay buttons.
+    var surface = options.touchSurface || wrap;
     // A second finger anywhere is the jump button: steer with one thumb,
     // jump with the other, hold for a longer flight.
     var touchJump = false;
@@ -2716,6 +2721,7 @@
     }
 
     function onPointerDown(e) {
+      if (surface !== wrap && e.target.closest && e.target.closest("button, a, input, select")) return;
       wrap.focus();
       if (e.pointerType === "mouse") return;
       e.preventDefault();
@@ -2724,7 +2730,7 @@
         if (jumpPointer === null && state.mode === "playing") {
           jumpPointer = e.pointerId;
           touchJump = true;
-          try { wrap.setPointerCapture(e.pointerId); } catch (err) { /* fine */ }
+          try { surface.setPointerCapture(e.pointerId); } catch (err) { /* fine */ }
         }
         return;
       }
@@ -2732,7 +2738,7 @@
         id: e.pointerId, x0: e.clientX, y0: e.clientY,
         x: e.clientX, y: e.clientY, moved: 0, t0: Date.now()
       };
-      try { wrap.setPointerCapture(e.pointerId); } catch (err) { /* fine */ }
+      try { surface.setPointerCapture(e.pointerId); } catch (err) { /* fine */ }
     }
 
     function onPointerMove(e) {
@@ -2761,10 +2767,10 @@
     wrap.addEventListener("keyup", onKeyUp);
     wrap.addEventListener("blur", onBlur);
     wrap.addEventListener("focus", onFocus);
-    wrap.addEventListener("pointerdown", onPointerDown);
-    wrap.addEventListener("pointermove", onPointerMove);
-    wrap.addEventListener("pointerup", onPointerUp);
-    wrap.addEventListener("pointercancel", onPointerUp);
+    surface.addEventListener("pointerdown", onPointerDown);
+    surface.addEventListener("pointermove", onPointerMove);
+    surface.addEventListener("pointerup", onPointerUp);
+    surface.addEventListener("pointercancel", onPointerUp);
     document.addEventListener("visibilitychange", onVisibility);
 
     function start() {
@@ -3323,27 +3329,31 @@
       // Jump meter, sitting in the bottom status bar like a browser's
       // download progress. Frozen while you're flashing or bogged down, so
       // a stalled bar explains itself.
-      var by = H - 8, bx0 = 26, bw = W - bx0 - 4;
+      // On a canvas drawn under 480px wide (a phone), the 1x label would be
+      // about 5px tall: the bar, its label and its track go up a size.
+      var big = canvas.clientWidth > 0 && canvas.clientWidth < 480;
+      var barH = big ? 14 : 10, th = big ? 11 : 7;
+      var by = H - (big ? 12 : 8), bx0 = big ? 40 : 26, bw = W - bx0 - 4;
       ctx.fillStyle = "#05070f";
-      ctx.fillRect(0, H - 10, W, 10);
+      ctx.fillRect(0, H - barH, W, barH);
       var frozen = state.invuln > 0 || state.drag > 0;
-      drawText(ctx, "JUMP", 4, by, frozen ? "#8b4a55" : "#8b8fa8", 1);
+      drawText(ctx, "JUMP", 4, by, frozen ? "#8b4a55" : "#8b8fa8", big ? 2 : 1);
       ctx.fillStyle = "#16224d";
-      ctx.fillRect(bx0, by - 1, bw, 7);
+      ctx.fillRect(bx0, by - 1, bw, th);
       var fillW = Math.round(bw * state.charge);
       if (fillW > 0) {
         ctx.fillStyle = state.charge >= 1
           ? (Math.floor(state.time * 6) % 2 ? "#ffffff" : "#54f2ff")
           : state.charge >= MIN_JUMP ? "#54f2ff" : "#2b6ef6";
-        ctx.fillRect(bx0, by - 1, fillW, 7);
+        ctx.fillRect(bx0, by - 1, fillW, th);
       }
       if (frozen) {                       // hatch the track when stalled
         ctx.fillStyle = "rgba(255,51,85,.5)";
-        for (var hx = bx0; hx < bx0 + bw; hx += 4) ctx.fillRect(hx, by - 1, 1, 7);
+        for (var hx = bx0; hx < bx0 + bw; hx += 4) ctx.fillRect(hx, by - 1, 1, th);
       }
       // the notch you need to reach before you can leave the ground at all
       ctx.fillStyle = "#0a0d18";
-      ctx.fillRect(bx0 + Math.round(bw * MIN_JUMP), by - 1, 1, 7);
+      ctx.fillRect(bx0 + Math.round(bw * MIN_JUMP), by - 1, 1, th);
     }
 
     function drawSpray() {
@@ -3555,7 +3565,7 @@
         ctx.fillStyle = "rgba(5,7,15,.8)";
         ctx.fillRect(0, 0, W, H);
         drawTextCentered(ctx, "PAUSED", 210, "#54f2ff", 4);
-        drawTextCentered(ctx, "CLICK TO RESUME", 246, "#8b8fa8", 2);
+        drawTextCentered(ctx, usedTouch || COARSE ? "TAP TO RESUME" : "CLICK TO RESUME", 246, "#8b8fa8", 2);
       }
     }
 
@@ -3590,7 +3600,10 @@
         wrap.removeEventListener("keyup", onKeyUp);
         wrap.removeEventListener("blur", onBlur);
         wrap.removeEventListener("focus", onFocus);
-        wrap.removeEventListener("pointerdown", onPointerDown);
+        surface.removeEventListener("pointerdown", onPointerDown);
+        surface.removeEventListener("pointermove", onPointerMove);
+        surface.removeEventListener("pointerup", onPointerUp);
+        surface.removeEventListener("pointercancel", onPointerUp);
         document.removeEventListener("visibilitychange", onVisibility);
         if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
       }
