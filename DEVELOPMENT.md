@@ -413,6 +413,8 @@ it read as a tuft on top of the head.
 - `tools/check-sprites.js` — art integrity check, run in CI
 - `tools/stamp-assets.js` — stamps each script and stylesheet URL in
   `index.html` with its content hash (`--check` only reports), run in CI
+- `tools/check-ship.js` — fails when `index.html` loads a local file the
+  deploy's rsync list or `artifacts: paths:` leaves out, run in CI
 
 ## Deploying
 
@@ -437,8 +439,14 @@ inherited from the `greykit-app` group. They're *protected* variables, so
 they only reach pipelines on protected branches; `main` is protected here. If a
 deploy fails at the `ssh` step with empty variables, that's the thing to check.
 
-The validate stage runs `node --check`, the stamp check, and
-`tools/check-sprites.js`, which
+**A new file goes in the ship list.** The deploy rsyncs an explicit list of
+files, so one the page loads but the list leaves out deploys green and then
+404s — `gk-intro.js` and `music.js` did that on 2026-10-20 and the live game
+was a black screen. Add it to the `puma_rsync` line and to `artifacts: paths:`
+in `.gitlab-ci.yml`; `tools/check-ship.js` fails CI until both carry it.
+
+The validate stage runs `node --check`, the stamp check, the ship-list check,
+and `tools/check-sprites.js`, which
 catches the failure modes this codebase actually has — a grid row that lost a
 character, a pixel referencing a colour that isn't in its palette, a sprite no
 era can spawn, or a hazard wearing the reserved pickup green. None of those
