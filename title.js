@@ -453,7 +453,9 @@
     $("title").hidden = true; $("play").hidden = false;
     $("hint").textContent = HINT;
     $("host").innerHTML = "";
-    game = RS.mount($("host"), { width: fitWidth(), muted, autofocus: true });
+    /* the whole play screen takes the fingers, so a thumb steers from the
+       room under the board as well as on it */
+    game = RS.mount($("host"), { width: fitWidth(), muted, autofocus: true, touchSurface: $("play") });
     fitGame();
     game.start();
   }

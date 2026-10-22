@@ -1,0 +1,15 @@
+{
+  "name": "Retro Surfer '96",
+  "short_name": "Retro Surfer",
+  "description": "Ride the information superhighway. A pixel-art web-surfing game: carve past dead 90s services and outrun Clippy.",
+  "start_url": ".",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#05070f",
+  "theme_color": "#05070f",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}
